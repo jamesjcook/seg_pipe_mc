@@ -1,0 +1,15 @@
+seg_pipe_mc -d N32083 N32082T2W N32084 09.gaj.23 05.abb.02
+
+# these images are not flipped wrt the whs images -- by looking in imageJ
+seg_pipe -d N32083 N32082T2W N32084 09.gaj.23 05.abb.02
+
+seg_pipe -d -s syn200 N32083 N32082T2W N32084 09.gaj.23 05.abb.02
+
+# these images are said not to be flipped:
+seg_pipe -s syn200 N31991 N31993T2W N31992 09.gaj.23 05.abb.02
+
+
+# below the civm images and the whs images are nose flipped
+# but the label xform step works on these images: 11/30
+seg_pipe -d N32817 N32816T2W N32818 09.gaj.23 05.abb.02
+

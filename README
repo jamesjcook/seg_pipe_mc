@@ -1,0 +1,6 @@
+seg_pipe_dc2 - 10/11/02
+This is based on the directory seg_pipe1, but gets a more descriptive name (dc==double contrast),
+but this v2 attempts to handle voxel size like seg_pipe_sc1 (the single contrast pipeline). 
+now seg_pipe_mc - multiple contrast 
+mc3 - 11/01/21 - canonical label directory can be changed with option on command line
+

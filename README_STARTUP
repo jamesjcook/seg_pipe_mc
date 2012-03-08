@@ -1,0 +1,12 @@
+slg 091027 
+
+For matlab paths to work for the pipeline script based here:
+
+1) Place startup.m here containing "addpath /path/to/matlab/funtions" as needed. 
+
+2) Create alias to start pipeline in .cshrc:  it should cd to this dir, before calling perl main here.
+This causes startup.m here to be read and used by matlab to add to its path.
+
+e.g. in .cshrc 
+alias seg_pipe        cd /pipe_home/script/seg_pipe1; ./seg_pipe_main.pl
+
