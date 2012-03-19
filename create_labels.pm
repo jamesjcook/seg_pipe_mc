@@ -153,7 +153,7 @@ sub create_diff_syn_transform {
   my $my_options = "-i 3000x3000x3000x0 -t SyN[$syn_setting] -r Gauss[3,0] --continue-affine true -a $affine_xform -x $ref_skull_mask --affine-gradient-descent-option 0.8x0.5x0.0001x0.0001";
      $my_options = "-i 3000x3000x3000x3000 -t SyN[$syn_setting] -r Gauss[1,0.5] --continue-affine true -a $affine_xform -x $ref_skull_mask --affine-gradient-descent-option 0.2x0.5x0.0001x0.0001";
      $my_options = "-i 3000x3000x3000x0 -t SyN[$syn_setting] -r Gauss[1,0.05] --continue-affine true -a $affine_xform -x $ref_skull_mask --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
- $my_options = "-i 3000x3000x3000x0 -t SyN[$syn_setting] -r Gauss[1,0.05] --continue-affine true -a $affine_xform --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
+     $my_options = "-i 3000x3000x3000x0 -t SyN[$syn_setting] -r Gauss[1,0.05] --continue-affine true -a $affine_xform --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
 
   #/////// define ants transform command including all options ///////
 
@@ -166,7 +166,7 @@ sub create_diff_syn_transform {
    my $cmd = "$ants_app_dir/ants 3 -m CC[$metric0] -m CC[$metric1] -o $result_transform_path_base $other_options $my_options";
 
   if ($DEBUG_GO) { 
-  if (! execute($ggo, "create affine diff syn transform for labels", $cmd) ) {
+  if (! execute($ggo, "create affine diff syn transform for labels 3/2012\n\n\n", $cmd) ) {
     error_out("$PM create_diff_syn_transform: could not make transform: $cmd\n");
   }
   } 

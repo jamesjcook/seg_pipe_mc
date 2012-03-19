@@ -48,7 +48,7 @@ print
     $runno_t1_set, $runno_t2w_set, $runno_t2star_set, 
     subproj source: $subproject_source_runnos, subproj result: $subproject_segmentation_result, 
     pull=$pull_source_images, suffix=$extra_runno_suffix, flip_y=$flip_y, flip_z=$flip_z, domask=$do_bit_mask
-    canon_labels_dir=$canon_labels_dir, canon_images_dir=$canon_images_dir\n") if 1;
+    canon_labels_dir=$canon_labels_dir, canon_images_dir=$canon_images_dir\n") if 1; # always print this... kinda a wierd way to set that up.
 
 my $nominal_runno = "xxx"; 
 if ($extra_runno_suffix eq "--NONE") {
@@ -63,11 +63,16 @@ print "Base name that will be used to ID this segmentation: $nominal_runno\n";
 
 set_environment($nominal_runno); # opens headfile, log file
 
+
+## this might be unecessarily confusing. 
 my $dirl = $canon_labels_dir;
 if ($canon_labels_dir eq "DEFAULT") {
   $dirl = $HfResult->get_value('dir_whs_labels_default');
 }
 $HfResult->set_value('dir_whs_labels', $dirl);
+
+
+
 
 my $diri = $canon_images_dir;
 if ($canon_images_dir eq "DEFAULT") {
@@ -144,6 +149,9 @@ sub locate_data {
 # ------------------
 sub set_environment {
 # ------------------
+# gets engine vars using the get_engine_dep script and stores in new headfile $HfResult, 
+# HfResult is a global, i dont think i like that convention, better to play pass the hf ref i'd say.
+# 
   my ($runno) = @_;
   #print ("runno=$runno\n");
   my ($std_input_dir, $std_work_dir, $std_result_dir, $std_headfile, $std_whs_images_dir, $std_whs_labels_dir) = get_engine_dependencies($runno);
@@ -171,6 +179,7 @@ sub set_environment {
 # ------------------
 sub get_engine_dependencies {
 # ------------------
+# finds and reads engine dependency file 
   my ($runno) = @_;
   use Env qw(PIPELINE_HOSTNAME PIPELINE_HOME BIGGUS_DISKUS);
   if (! defined($PIPELINE_HOSTNAME)) { error_out ("Environment variable PIPELINE_HOSTNAME must be set."); }
@@ -204,7 +213,7 @@ sub get_engine_dependencies {
   if (! -e $engine_whs_labels_dir) { error_out ("unable to find standard whs directory $engine_whs_labels_dir");  } 
   if (! -e $engine_whs_images_dir) { error_out ("unable to find standard whs directory $engine_whs_images_dir");  } 
 
-  my $fix = "Labels";
+  my $fix = "Labels"; # sets postfix
   my $conventional_input_dir = "$BIGGUS_DISKUS/$runno$fix\-inputs"; # may not exist yet
   
   my $conventional_work_dir  = "$BIGGUS_DISKUS/$runno$fix\-work";
@@ -238,8 +247,8 @@ usage:
      subproj_inputs   : the subproject the input runnos were collected for (and archived under). 
      subproj_result   : the subproject associated with and for storing (image, label) results of this program. 
    options:
-     -d         : if used, the runnos will not be copied from the archive (they must be present).
-     -f         : if used, input images will be flipped in y before use
+     -e         : if used, the runnos will not be copied from the archive (they must be present).
+     -y         : if used, input images will be flipped in y before use
      -z         : if used, input images will be flipped in z before use
      -s  suffix : optional suffix on default result runno (doc test params?). Must be ok for filename embed. 
      -l  dir    : change canonical labels directory from default

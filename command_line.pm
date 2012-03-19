@@ -1,11 +1,16 @@
 # command_line.pm
+# reads command line options for seg_pipe_mc, should probably be renamed to 
+# reflect that it is specific to the pipe calling it.
 #
-# utilities for reading command line 
-#
+# 12/03/08 jjc29 modified option vars to make more sence and match once used 
+#          in other sally style perl scripts,   -d changed to -e
+#                                               -f changed to -y so it matches -z 
+#          added example ussage under command_line so its more clear how this 
+#          is used and what it does
+# 11/01/21 slg Add cmd line options to change directories for canonical labels.
+
 # created 09/10/30  Sally Gewalt CIVM
 #                   based on radish pipeline
-# 09/10/30 slg
-# 11/01/21 slg Add cmd line options to change directories for canonical labels.
 
 # be sure to change version:
 my $VERSION = "11/1/21";
@@ -19,6 +24,13 @@ my $NREQUIRED_ARGS = 5;
 my $SHOW = 0;
 
 sub command_line {
+# ex call 
+#my ($runno_t1_set, $runno_t2w_set, $runno_t2star_set, 
+#    $subproject_source_runnos, $subproject_segmentation_result, 
+#    $flip_y, $flip_z, $pull_source_images, $extra_runno_suffix, $do_bit_mask, 
+#    $canon_labels_dir, $canon_images_dir) 
+#       = command_line(@ARGV);
+
   # exit with usage message (from your main) if problem detected
   ####my (@ARGV) = @_;
 
@@ -26,7 +38,7 @@ sub command_line {
 
   print "unprocessed: @ARGV\n";
   my %options = ();
-  if (! getopts('ds:b:fzi:l:', \%options)) {
+  if (! getopts('oes:b:yzi:l:', \%options)) {
     print "Problem with command line options.\n";
     usage_message("problem with getopts");
   }
@@ -61,10 +73,10 @@ sub command_line {
   #  -- handle cmd line options...
 
   my $flip_y = 0;
-  if (defined $options{f}) {  # -f
+  if (defined $options{y}) {  # -y
      $flip_y = 1;
-     $cmd_line =  "-f " . $cmd_line;
-     print STDERR "  Flipping input images in y. (-f)\n";
+     $cmd_line =  "-y " . $cmd_line;
+     print STDERR "  Flipping input images in y. (-y)\n";
   }
   else {
      $flip_y = 0;
@@ -85,10 +97,10 @@ sub command_line {
   push @arg_list, $flip_z;
 
   my $data_pull = 1;
-  if (defined $options{d}) {  # -d
+  if (defined $options{e}) {  # -e
      $data_pull = 0;
-     $cmd_line =  "-d " . $cmd_line;
-     print STDERR "  No image data to be copied from archive. Data should be available. (-d)\n";
+     $cmd_line =  "-e " . $cmd_line;
+     print STDERR "  No image data to be copied from archive. Data should be available. (-e)\n";
   }
   else {
      $data_pull = 1;
