@@ -1,7 +1,5 @@
 #!/usr/local/pipeline-link/perl
-
 # main_seg_pipe.pl
-
 # created 2009/10/27 Sally Gewalt CIVM
 #
 # Main for segmentation pipeline.  
@@ -13,23 +11,22 @@
 # 2010/11/02 updates for handling voxel size info from header 
 # 2011/01/21 slg command line options to change default locations: dir_whs_labels_default, dir_whs_images_default
 
-my $PIPELINE_VERSION = "2011/01/21";
-my $PIPELINE_NAME = "Multiple contrast Brain Seg Pipeline"; 
-my $PIPELINE_DESC = "CIVM MRI mouse brain image segmentation using multiple contrasts";
-
-my $HfResult = "unset";
+#package seg_pipe_mc;
 
 use strict;
-require command_line;
+#require Exporter; 
+require command_line_mc;
 use Env qw(PIPELINE_SCRIPT_DIR);
 use lib "$PIPELINE_SCRIPT_DIR/utility_pms";
 require Headfile;
 require pipeline_utilities;
 require retrieve_archive_dir;
 require label_brain_pipe;
+require seg_pipe;
+# these variables are defined in seg_pipe.pm
+use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT);
 
-my $GOODEXIT = 0;
-my $BADEXIT  = 1;
+#@EXPORT_OK = qw(PIPELINE_VERSION PIPELINE_NAME PIPELINE_DESC);
 
 my $g_engine_matlab_app;
 my $g_engine_ants_app_dir;
@@ -40,9 +37,9 @@ my $g_engine_ants_app_dir;
 my ($runno_t1_set, $runno_t2w_set, $runno_t2star_set, 
     $subproject_source_runnos, $subproject_segmentation_result, 
     $flip_y, $flip_z, $pull_source_images, $extra_runno_suffix, $do_bit_mask, 
-    $canon_labels_dir, $canon_images_dir) 
-       = command_line(@ARGV);
-
+    $canon_labels_dir, $canon_images_dir)  
+       = command_line_mc(@ARGV);
+#, $test_mode
 print 
 ("Command line info provided to main:
     $runno_t1_set, $runno_t2w_set, $runno_t2star_set, 
@@ -53,8 +50,7 @@ print
 my $nominal_runno = "xxx"; 
 if ($extra_runno_suffix eq "--NONE") {
   $nominal_runno = $runno_t1_set;  # the "nominal runno" is used to id this segmentation
-}
-else {
+} else {
   print "Extra runno suffix info provided = $extra_runno_suffix\n";
   $nominal_runno = $runno_t1_set . $extra_runno_suffix; 
 }
@@ -229,54 +225,5 @@ sub get_engine_dependencies {
   my $conventional_headfile = "$conventional_result_dir/$runno$fix\.headfile"; 
   return($conventional_input_dir, $conventional_work_dir, $conventional_result_dir, $conventional_headfile, 
       $engine_whs_images_dir, $engine_whs_labels_dir);
-}
-
-# ------------------
-sub usage_message {
-# ------------------
-  my ($msg) = @_;
-  print STDERR "$msg\n";
-  print STDERR "$PIPELINE_NAME
-  $PIPELINE_DESC
-usage:
-  seg_pipe \<options\> runno_T1  runno_T2W  runno_T2star  subproj_inputs  subproj_result
-    required args:
-     runno_T1_set     : runno of the input T1 image set (must be available in the archive). 
-     runno_T2W_set    : runno of the input T2W image set.
-     runno_T2star_set : runno of the input T2star image set. 
-     subproj_inputs   : the subproject the input runnos were collected for (and archived under). 
-     subproj_result   : the subproject associated with and for storing (image, label) results of this program. 
-   options:
-     -e         : if used, the runnos will not be copied from the archive (they must be present).
-     -y         : if used, input images will be flipped in y before use
-     -z         : if used, input images will be flipped in z before use
-     -s  suffix : optional suffix on default result runno (doc test params?). Must be ok for filename embed. 
-     -l  dir    : change canonical labels directory from default
-     -i  dir    : change canonical images directory from default
-     -b do_bit_mask : default: 11111 to do all 5 steps; 01111 to skip first step, etc. Steps: nifti, register, strip, whs, label.
-                      Skipping is only from gross testing of commands created and not guaranteed to produce results.
-
-version: $PIPELINE_VERSION 
-
-"; 
-  exit (! $GOODEXIT);
-}
-
-# -------------
-sub error_out
-# -------------
-{
-  my ($msg) = @_;
-  print STDERR "\n<~Pipeline failed.\n";
-  print STDERR "  Failure cause: ", $msg,"\n";
-  print STDERR "  Please note the cause.\n";
-
-  close_log_on_error($msg);
-  if ($HfResult ne "unset") {
-    my $hf_path = $HfResult->get_value('headfile_dest_path');
-    $HfResult->write_headfile($hf_path);
-    $HfResult = "unset";
-  }
-  exit $BADEXIT;
 }
 

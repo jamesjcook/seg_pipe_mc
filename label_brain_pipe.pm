@@ -9,6 +9,7 @@
 # nifti conversion knows about voxel size
 #
 
+package label_brain_pipe;
 my $VERSION = "2010/03/03";
 my $NAME = "Alex Badea Brain Segmentation Method";
 my $DESC = "warps WHS labels";
@@ -25,6 +26,14 @@ require registration;
 require image_math;
 require register_all_to_whs;
 
+# fancy begin block and use vars to define a world global variable, available to any module used at the same time as this one
+BEGIN {
+    use Exporter; 
+    @label_brain_pipe::ISA = qw(Exporter);
+#    @label_brain_pipe::Export = qw();
+    @label_brain_pipe::EXPORT_OK = qw($test_mode);
+}
+use vars qw($test_mode);
 #use lib "$PIPELINE_SCRIPT_DIR/utility_pms";
 #require pipeline_utilities;
 
