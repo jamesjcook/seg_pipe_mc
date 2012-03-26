@@ -21,7 +21,8 @@ use strict;
 #use English;
 use Getopt::Std;
 # grab the variables from the seg_pipe.pm file in the script directory, all shared globals stored there, needs full testing to determine functionality
-require seg_pipe;
+use seg_pipe; # pipe info variable definitions
+use label_brain_pipe; # test_mode variable definiton
 use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT $test_mode);
 
 
@@ -178,7 +179,7 @@ sub command_line_mc {
   if (defined $options{t}) { #-t   testmode
       $test_mode = 1;
       $cmd_line = "-t " . $cmd_line;
-      print STDERR " TESTMODE enabled, will do very fast(incomplet) ANTS calls! (-t)\n";
+      print STDERR " TESTMODE enabled, will do very fast(incomplete) ANTS calls! (-t)\n";
   }
 #  push @arg_list, $test_mode;  # test_mode is contained in a global defined from label_brain_pipe.pm
   print "@arg_list :test_mode\n" if $SHOW;

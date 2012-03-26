@@ -1,17 +1,18 @@
 #!/usr/local/pipeline-link/perl
 
 # register_all_to_whs.pm 
-
 # created 2009/11/19 Sally Gewalt CIVM 
 # based on rigid_to_canN32083_30jul.sh
 
+my $PM = "register_all_to_whs.pm";
 my $VERSION = "2009/11/24";
 my $NAME = "Alex Badea rigid registering to whs";
 my $DESC = "ants";
 my $ggo = 1;
-my $PM = "register_all_to_whs.pm";
 
 use strict;
+#use label_brain_pipe;
+#use vars qw($test_mode);
 
 # ------------------
 sub register_all_to_whs {

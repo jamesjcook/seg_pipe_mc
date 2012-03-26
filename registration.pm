@@ -7,7 +7,8 @@
 my $PM = "Registration.pm";
 
 use strict;
-
+#use label_brain_pipe; # test_mode variable definiton
+use vars qw($test_mode);
 
 # ------------------
 sub create_transform {
@@ -38,6 +39,11 @@ sub create_transform {
 
     my $opts1 = "-i 0 --use-Histogram-Matching --rigid-affine true --MI-option 32x8000 -r Gauss[3,0.5]";
     my $opts2 = "--number-of-affine-iterations 3000x3000x3000x3000 --affine-gradient-descent-option 0.8x0.5x1.e-4x1.e-4 -v";  
+    if (defined $test_mode) {
+	if ($test_mode == 1) {
+	    $opts2 = "--number-of-affine-iterations 1x0x0x0 --affine-gradient-descent-option 0.8x0.5x1.e-4x1.e-4 -v";  
+	}
+    }
 
     #$cmd = "$ants_app_dir/ANTS 3 -m CC[$A_path,$B_path,1,4] $opts1 -o $result_transform_path_base $opts2"; #option - but time consuming
     $cmd = "$ants_app_dir/ANTS 3 -m MI[$A_path,$B_path,1,32] $opts1 -o $result_transform_path_base $opts2";

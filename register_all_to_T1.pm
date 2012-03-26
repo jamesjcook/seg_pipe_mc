@@ -3,6 +3,7 @@
 # register_all_to_T1.pm 
 # created 2009/10/28 Sally Gewalt CIVM 
 
+
 my $PM = "Register_all_to_T1.pm";
 my $VERSION = "$PM 2009/10/27";
 my $NAME = "Original data set rigid registration ABB Method";
@@ -10,6 +11,8 @@ my $DESC = "ants";
 my $ggo = 1;
 
 use strict;
+#use label_brain_pipe;
+#use vars qw($test_mode);
 
 # ------------------
 sub register_all_to_T1 {

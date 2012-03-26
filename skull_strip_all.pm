@@ -12,6 +12,7 @@ my $ggo = 1;
 my $SKULL_MASK_MFUNCTION =  "strip_mask";  # an mfile function in matlab directory, but no .m here
 my $PM = "skull_strip_all.pm";
 use strict;
+use vars qw($PID);
 
 # ------------------
 sub skull_strip_all {
