@@ -27,6 +27,7 @@ sub set_environment {
 # ------------------
 # gets engine vars using the get_engine_dep script and stores in new headfile $HfResult, 
 # HfResult is a global, i dont think i like that convention, better to play pass the hf ref i'd say.
+# to support this HFresult i've made the global world global for these scripts, why go back and forth between conventions...
 # 
   my ($runno) = @_;
   #print ("runno=$runno\n");

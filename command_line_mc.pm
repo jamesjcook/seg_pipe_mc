@@ -26,11 +26,12 @@ use label_brain_pipe; # test_mode variable definiton
 use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT $test_mode);
 
 
-my $NREQUIRED_ARGS = 5;
-my $SHOW = 0;
+my $NREQUIRED_ARGS = 3;
+my $MAX_ARGS = 5;
+my $debug_val = 5;
 
 # ------------------
-sub usage_message_mc {
+sub usage_message_mc_hardcodechannels {
 # ------------------
 # $PIPELINE_VERSION, $PIPELINE_NAME, $PIPELINE_DESC
   my ($msg) = @_;
@@ -60,6 +61,38 @@ version: $PIPELINE_VERSION
 "; 
   exit (! $GOODEXIT);
 }
+# ------------------
+sub usage_message_mc {
+# ------------------
+# $PIPELINE_VERSION, $PIPELINE_NAME, $PIPELINE_DESC
+  my ($msg) = @_;
+  print STDERR "$msg\n";
+  print STDERR "$PIPELINE_NAME
+  $PIPELINE_DESC
+usage:
+  seg_pipe \<options\> runno_channel1  [runno_channel2]  [runno_channel3]  subproj_inputs  subproj_result
+    required args:
+     runno_channel1_set : runno of the input channel1, default is a T1 image set (must be available in the archive). 
+     runno_channel2_set : runno of the input channel2, default is a T2W image set. (optional)
+     runno_channel3_set : runno of the input channel3, default is a T2star image set. (optional)
+     subproj_inputs     : the subproject the input runnos were collected for (and archived under). 
+     subproj_result     : the subproject associated with and for storing (image, label) results of this program. 
+   options:
+     -c         : Comma list of channels. The default is T1,T2W,T2star. Suppored channels T1,T2W,T2star,adc,dwi,e1,fa
+     -e         : if used, the runnos will not be copied from the archive (they must be present).
+     -y         : if used, input images will be flipped in y before use
+     -z         : if used, input images will be flipped in z before use
+     -s  suffix : optional suffix on default result runno (doc test params?). Must be ok for filename embed. 
+     -l  dir    : change canonical labels directory from default
+     -i  dir    : change canonical images directory from default
+     -b do_bit_mask : default: 11111 to do all 5 steps; 01111 to skip first step, etc. Steps: nifti, register, strip, whs, label.
+                      Skipping is only from gross testing of commands created and not guaranteed to produce results.
+
+version: $PIPELINE_VERSION 
+
+"; 
+  exit (! $GOODEXIT);
+}
 
 sub command_line_mc {
 # ex call 
@@ -74,115 +107,131 @@ sub command_line_mc {
 
   if ($#ARGV+1 == 0) { usage_message_mc("");}
 
-  print "unprocessed: @ARGV\n";
+  print "unprocessed args: @ARGV\n" if ($debug_val >=35);;
   my %options = ();
-  if (! getopts('oes:b:yzi:l:t', \%options)) {
+  if (! getopts('oes:b:yztc:i:l:', \%options)) {
     print "Problem with command line options.\n";
     usage_message_mc("problem with getopts");
   } 
   #print "$#ARGV+1 vs $NREQUIRED_ARGS\n";
   #print "processed: @ARGV\n";
-  if ($#ARGV+1 < $NREQUIRED_ARGS) { usage_message_mc("Too few arguments on command line");}
-  if ($#ARGV+1 > $NREQUIRED_ARGS) { usage_message_mc("Too many arguments on command line");}
+  if ($#ARGV+1 < $NREQUIRED_ARGS) { usage_message_mc("Too few arguments on command line"); }
+  if ($#ARGV+1 > $MAX_ARGS) { usage_message_mc("Too many arguments on command line"); }
 
   # -- handle required params
   my $cmd_line = "";
   foreach my $a (@ARGV) {  # save the cmd line for annotation
     my $cmd_line = $cmd_line . " " . $a;
   }
-  my @arg_list = ();
+#  my @arg_list = ();
+  my %arg_hash ;
+  my $projlist='';
+  my $runnolist='';
 
-    if ($#ARGV < 0) {usage_message_mc("Missing required argument on command line");}
-  push @arg_list, (shift @ARGV);
-  print "@arg_list :T1\n" if $SHOW;
-    if ($#ARGV < 0) {usage_message_mc("Missing required argument on command line");}
-  push @arg_list, (shift @ARGV);
-  print "@arg_list :T2W\n" if $SHOW;
-    if ($#ARGV < 0) {usage_message_mc("Missing required argument on command line");}
-  push @arg_list, (shift @ARGV);
-  print "@arg_list :T2star\n" if $SHOW;
-    if ($#ARGV < 0) {usage_message_mc("Missing required argument on command line");}
-  push @arg_list, (shift @ARGV);
-  print "@arg_list :source subproject\n" if $SHOW;
-    if ($#ARGV < 0) {usage_message_mc("Missing required argument on command line");}
-  push @arg_list, (shift @ARGV);
-  print "@arg_list :dest subproject\n" if $SHOW;
+  if ($#ARGV < 0) { usage_message_mc("Missing required argument on command line"); }
+  my $projdest=pop @ARGV;
+  if ($#ARGV < 0) { usage_message_mc("Missing required argument on command line"); }
+  my $projsource=pop @ARGV;
+  $projlist= $projsource . ',' . $projdest ;
+  print "$projlist : projin,projout\n" if ($debug_val>=45);
+#  unshift @arg_list,$projlist; #prepend projlist
+  $arg_hash{projlist}=$projlist;
+  
+  if ($#ARGV < 0) { usage_message_mc("Missing required argument on command line"); }
+  $runnolist=shift @ARGV;
+  while( $#ARGV>=0 ) { $runnolist=$runnolist . ',' . shift @ARGV ; } # dump optionally infinite runno's here.
+  $arg_hash{runnolist}=$runnolist;
 
   #  -- handle cmd line options...
-
+  ## single letter opts
+  my @singleopts = (); 
+#  my $test_mode = 0; # this is world global, so thisi s not appropriate
+  if (defined $options{t}) { #-t   testmode
+      $test_mode = 1;
+      push @singleopts,'t';
+      print STDERR " TESTMODE enabled, will do very fast(incomplete) ANTS calls! (-t)\n" if ($debug_val>=10);
+#      $debug_val=45;
+  }
+  print "testmode:$test_mode\n" if ($debug_val>=45); 
+  
   my $flip_y = 0;
   if (defined $options{y}) {  # -y
      $flip_y = 1;
-     $cmd_line =  "-y " . $cmd_line;
-     print STDERR "  Flipping input images in y. (-y)\n";
+     push @singleopts,'y';
+#     $cmd_line =  "-y " . $cmd_line;
+     print STDERR "  Flipping input images in y. (-y)\n" if ($debug_val>=10);
   } else {
      $flip_y = 0;
-     print STDERR "  Not flipping input images in y.\n";
+     print STDERR "  Not flipping input images in y.\n" if ($debug_val>=10);
   }
-  push @arg_list, $flip_y;
+  $arg_hash{flip_y}=$flip_y;
 
-  my $flip_z = 0;
+  my $flip_z ;
   if (defined $options{z}) {  # -z
      $flip_z = 1;
-     $cmd_line =  "-z " . $cmd_line;
-     print STDERR "  Flipping input images in z. (-z)\n";
+      push @singleopts,'z';
+#     $cmd_line =  "-z " . $cmd_line;
+     print STDERR "  Flipping input images in z. (-z)\n" if ($debug_val>=10);
   } else {
      $flip_z = 0;
-     print STDERR "  Not flipping input images in z.\n";
+     print STDERR "  Not flipping input images in z.\n" if ($debug_val>=10);
   }
-  push @arg_list, $flip_z;
-
-  my $data_pull = 1;
+  $arg_hash{flip_z}=$flip_z;
+  
+  my $data_pull ;
   if (defined $options{e}) {  # -e
      $data_pull = 0;
-     $cmd_line =  "-e " . $cmd_line;
-     print STDERR "  No image data to be copied from archive. Data should be available. (-e)\n";
+     push @singleopts,'e';
+     #$cmd_line =  "-e " . $cmd_line;
+     print STDERR "  No image data to be copied from archive. Data should be available. (-e)\n" if ($debug_val>=10);
   } else {
      $data_pull = 1;
-     print STDERR "  Copying image data from archive.\n";
+     print STDERR "  Copying image data from archive.\n" if ($debug_val>=10);
   }
-  push @arg_list, $data_pull;
-  print "@arg_list :data_pull\n" if $SHOW;
+  $arg_hash{data_pull}=$data_pull;
+
+  ##opts with arguments
+  my $channel_order='T1,T2W,T2star';
+  if (defined $options{c}) {  # -c 
+      $channel_order = $options{c};
+      $cmd_line = "-c $channel_order " . $cmd_line;
+  } else { 
+      print STDERR "  Using default channel order $channel_order\n" if ($debug_val>=10);
+  }
+  $arg_hash{channel_order}=$channel_order;
 
   my $extra_runno_suffix = "--NONE";
   if (defined $options{s}) {  # -s
      $extra_runno_suffix = $options{s};
-     print STDERR "  Adding your suffix to result runno: $extra_runno_suffix (-s)\n";
+     $cmd_line = " -s $extra_runno_suffix " . $cmd_line;
+     print STDERR "  Adding your suffix to result runno: $extra_runno_suffix (-s)\n" if ($debug_val>=10);
   }
-  push @arg_list, $extra_runno_suffix;
-  print "@arg_list :extra runno suffix\n" if $SHOW;
+  $arg_hash{extra_runno_suffix}=$extra_runno_suffix;
 
   my $bit_mask = "11111";
   if (defined $options{b}) {  # -b
      $bit_mask = $options{b};
-     print STDERR "  go bitmask: $bit_mask (set with -b)\n";
+     $cmd_line = "-b $bit_mask " . $cmd_line;
+     print STDERR "  go bitmask: $bit_mask (set with -b)\n" if ($debug_val>=10);
   }
-  push @arg_list, $bit_mask;
-  print "@arg_list :do mask\n" if $SHOW;
+  $arg_hash{bit_mask} = $bit_mask;
 
-  my $label_dir = "DEFAULT";
+  my $atlas_labels_dir = "DEFAULT";
   if (defined $options{l}) {  # -l
-     $label_dir = $options{l};
+     $atlas_labels_dir = $options{l};
+     $cmd_line = "-l $atlas_labels_dir " . $cmd_line;
   }
-  push @arg_list, $label_dir;
-  print "@arg_list :label_dir\n" if $SHOW;
+  $arg_hash{atlas_labels_dir}=$atlas_labels_dir;
 
-  my $images_dir = "DEFAULT"; # canonical images dir
+  my $atlas_images_dir = "DEFAULT"; # canonical images dir
   if (defined $options{i}) {  # -i
-     $images_dir = $options{i};
+     $atlas_images_dir = $options{i};
+     $cmd_line = "-i $atlas_labels_dir " . $cmd_line;
   }
-  push @arg_list, $images_dir;
-  print "@arg_list :images_dir\n" if $SHOW;
+  $arg_hash{atlas_images_dir}=$atlas_images_dir;
 
-#  my $test_mode = 0;
-  print "testmode:$test_mode\n" if $SHOW; 
-  if (defined $options{t}) { #-t   testmode
-      $test_mode = 1;
-      $cmd_line = "-t " . $cmd_line;
-      print STDERR " TESTMODE enabled, will do very fast(incomplete) ANTS calls! (-t)\n";
-  }
-#  push @arg_list, $test_mode;  # test_mode is contained in a global defined from label_brain_pipe.pm
-  print "@arg_list :test_mode\n" if $SHOW;
+  $cmd_line = "-" . join('',@singleopts). $cmd_line;
+
 
   if (0) { # example with options....
       my $use_gui_paramfile_boolean;
@@ -196,7 +245,11 @@ sub command_line_mc {
       }
   }
   
-  return (@arg_list);
+#   for my $k (keys %arg_hash) {
+#       print "$k: $arg_hash{$k}\n";
+#   }
+  $arg_hash{cmd_line}=$cmd_line;
+  return (\%arg_hash); # makes sure to return a ref, this makes live easier.
 }
 
 1;
