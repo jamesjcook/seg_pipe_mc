@@ -16,7 +16,7 @@ my  $NIFTI_MFUNCTION = 'civm_to_nii_may';  # an mfile function in matlab directo
 my $ggo = 1;
 
 # ------------------
-sub convert_to_nifti {
+sub convert_to_nifti_mc {
 # ------------------
 # convert the source image volumes used in this SOP to nifti format (.nii)
 # could use image name (suffix) to figure out datatype

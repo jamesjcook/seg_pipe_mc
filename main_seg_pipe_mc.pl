@@ -65,13 +65,13 @@ if ($extra_runno_suffix eq "--NONE") {
 }
 set_environment($nominal_runno); # opens headfile, log file
 if ($atlas_labels_dir eq "DEFAULT") {
-  $atlas_labels_dir = $HfResult->get_value('dir_whs_labels_default');
+  $atlas_labels_dir = $HfResult->get_value('dir-whs-labels-default');
 }
 log_info("  Using canonical labels dir = $atlas_labels_dir"); 
 if (! -e $atlas_labels_dir) { error_out ("unable to find canonical labels directory $atlas_labels_dir");  } 
 $HfResult->set_value('dir_whs_labels', $atlas_labels_dir);
 if ($atlas_images_dir eq "DEFAULT") {
-  $atlas_images_dir = $HfResult->get_value('dir_whs_images_default');
+  $atlas_images_dir = $HfResult->get_value('dir-whs-images-default');
 }
 $HfResult->set_value('dir_whs_images', $atlas_images_dir);
 log_info("        canonical images dir = $atlas_images_dir"); 
@@ -94,8 +94,8 @@ print
 
 #print "Base name that will be used to ID this segmentation: $nominal_runno\n";
 
-$HfResult->set_value('runno_channels_sid',join(','@channel_array));
-$HfResult->set_value('runno_channels',join(',',@runno_array));
+$HfResult->set_value('runno_ch_commalist',join(',',@channel_array));
+$HfResult->set_value('runno_commalist',join(',',@runno_array));
 $HfResult->set_value('subproject_source_runnos', $subproject_source_runnos);
 $HfResult->set_value('subproject'              , $subproject_segmentation_result);
 #get specid from data headfiles?
@@ -104,10 +104,10 @@ $HfResult->set_value('specid'  , "NOT_HANDLED_YET");
 my $i;
 for($i=0;$i<=$#runno_array;$i++) {
     print ("inserting ${channel_array[$i]} info into Hfesult\n") if ($debug_val >=5);
-    $HfResult->set_value("${channel_array[$i]}_runno", $runno_array[$i]);
+    $HfResult->set_value("${channel_array[$i]}-runno", $runno_array[$i]);
 }
 # --- get source images, genericified for arbitrary channels
-my $dest_dir = $HfResult->get_value('dir_input'); # for retrieved images
+my $dest_dir = $HfResult->get_value('dir-input'); # for retrieved images
 if (! -e $dest_dir) { mkdir $dest_dir; }
 if (! -e $dest_dir) { error_out ("no dest dir! $dest_dir"); }
 #for my $rid split(',',$channel_order) {
@@ -122,8 +122,8 @@ for($i=0;$i<=$#channel_array;$i++) {
 label_brain_pipe($do_bit_mask, $flip_y, $flip_z, $HfResult);  # --- pipeline work is here
 
 # --- done
-my $dest    = $HfResult->get_value('dir_result');
-my $hf_path = $HfResult->get_value('headfile_dest_path');
+my $dest    = $HfResult->get_value('dir-result');
+my $hf_path = $HfResult->get_value('headfile-dest-path');
 
 # prepare (via a headfile?) for archive of results
 

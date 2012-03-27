@@ -43,14 +43,14 @@ sub set_environment {
   $HfResult = new Headfile ('rw', $std_headfile); # there is no file by this name yet, so can't check
 
   $HfResult->set_value('headfile_dest_path', $std_headfile);
-  $HfResult->set_value('dir_input' , $std_input_dir);
-  $HfResult->set_value('dir_result', $std_result_dir);
-  $HfResult->set_value('dir_work'  , $std_work_dir);
-  $HfResult->set_value('dir_whs_labels_default', $std_whs_labels_dir);
-  $HfResult->set_value('dir_whs_images_default', $std_whs_images_dir);
+  $HfResult->set_value('dir-input' , $std_input_dir);
+  $HfResult->set_value('dir-result', $std_result_dir);
+  $HfResult->set_value('dir-work'  , $std_work_dir);
+  $HfResult->set_value('dir-whs-labels-default', $std_whs_labels_dir);
+  $HfResult->set_value('dir-whs-images-default', $std_whs_images_dir);
 
-  $HfResult->set_value('engine_app_matlab'       , $g_engine_matlab_app);
-  $HfResult->set_value('engine_app_ants_dir'     , $g_engine_ants_app_dir);
+  $HfResult->set_value('engine-app-matlab'       , $g_engine_matlab_app);
+  $HfResult->set_value('engine-app-ants-dir'     , $g_engine_ants_app_dir);
 }
 
 # ------------------

@@ -19,7 +19,7 @@ use strict;
 use Env qw(PIPELINE_SCRIPT_DIR);
 require Headfile;
 require skull_strip_all;
-require register_all_to_T1;
+require register_all_to_channel1;
 require create_labels;
 require convert_all_to_nifti;
 require registration;
@@ -51,7 +51,8 @@ sub label_brain_pipe {
 
   convert_all_to_nifti($nifti, $flip_y, $flip_z, $Hf_out); 
 
-  register_all_to_T1  ($register, $Hf_out);
+  #register_all_to_T1  ($register, $Hf_out);
+  register_all_to_channel1  ($register, $Hf_out);
 
   skull_strip_all($strip, $Hf_out);
 
@@ -70,22 +71,22 @@ sub save_favorite_intermediates {
 # NOTE: some other results may be stored by the step subroutine itself (e.g. labels)
   my ($do_save, $Hf_out) = @_;
 
-  my $ants_app_dir  = $Hf_out->get_value('engine_app_ants_dir');
+  my $ants_app_dir  = $Hf_out->get_value('engine-app-ants-dir');
 
   # ---- copy the whs aligned images for posterity to the result dir
   # do not move them in case we are debugging and need intermediate results in work dir
 
   log_info ("$PM copying whs aligned images to results dir");
-  my $results_dir = $Hf_out->get_value("dir_result");
+  my $results_dir = $Hf_out->get_value("dir-result");
 
   my @list =();
   my @list2 =();
-  push @list, $Hf_out->get_value("T2star_reg2_whs_path");
-  push @list, $Hf_out->get_value("T2W_reg2_whs_path");
-  push @list, $Hf_out->get_value("T1_reg2_whs_path");
-  push @list2, $Hf_out->get_value("T2star_reg2_whs_file");
-  push @list2, $Hf_out->get_value("T2W_reg2_whs_file");
-  push @list2, $Hf_out->get_value("T1_reg2_whs_file");
+  push @list, $Hf_out->get_value("T2star-reg2-whs-path");
+  push @list, $Hf_out->get_value("T2W_reg2_whs-path");
+  push @list, $Hf_out->get_value("T1_reg2_whs-path");
+  push @list2, $Hf_out->get_value("T2star-reg2-whs-file");
+  push @list2, $Hf_out->get_value("T2W-reg2-whs-file");
+  push @list2, $Hf_out->get_value("T1-reg2-whs-file");
 
   foreach my $p (@list) {   # path to 32 bit whs result file
     my $cmd = "cp $p $results_dir";
