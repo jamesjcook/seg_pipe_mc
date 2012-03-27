@@ -3,24 +3,25 @@
 # created 2009/11/23 Sally Gewalt CIVM 
 # routines that call ants ImageMath
 
-my $VERSION = "2009/11/23";
+my $VERSION = "2012/03/27";
 my $NAME = "image_math";
 my $DESC = "ants";
 my $ggo = 1;
  
 my $PM = "image_math.pm";
 use strict;
-
+my $debug_val=0;
 
 # ------------------
 sub make_sane_mask {
 # ------------------
   my ($mask_image_tmp, $in_image_path_tag, $Hf) = @_;
 
- my $in_image_path  = $Hf->get_value($in_image_path_tag);
- my $ants_app_dir= $Hf->get_value('engine_app_ants_dir' );
-
+  my $in_image_path  = $Hf->get_value($in_image_path_tag);
+  my $ants_app_dir= $Hf->get_value('engine_app_ants_dir' );
+  if ($ants_app_dir eq 'NO_KEY') { $ants_app_dir= $Hf->get_value('engine-app-ants-dir' ); }
   if ((!-e $in_image_path) && $ggo)  {error_out("$PM normalize: missing input image: $in_image_path\n")}
+  print("antsdir:$ants_app_dir\nin_image:$in_image_path\n") if($debug_val >= 10);
 
   #check origins!
   my $cmd = "$ants_app_dir/CopyImageHeaderInformation $in_image_path $mask_image_tmp $mask_image_tmp 1 1 1"; 
@@ -29,8 +30,6 @@ sub make_sane_mask {
     error_out("$PM normalize: could not make your mask header the same as input: $cmd\n");
   }
 }
-
-
 
 
 # ------------------

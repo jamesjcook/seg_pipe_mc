@@ -69,11 +69,11 @@ if ($atlas_labels_dir eq "DEFAULT") {
 }
 log_info("  Using canonical labels dir = $atlas_labels_dir"); 
 if (! -e $atlas_labels_dir) { error_out ("unable to find canonical labels directory $atlas_labels_dir");  } 
-$HfResult->set_value('dir_whs_labels', $atlas_labels_dir);
+$HfResult->set_value('dir-whs-labels', $atlas_labels_dir);
 if ($atlas_images_dir eq "DEFAULT") {
   $atlas_images_dir = $HfResult->get_value('dir-whs-images-default');
 }
-$HfResult->set_value('dir_whs_images', $atlas_images_dir);
+$HfResult->set_value('dir-whs-images', $atlas_images_dir);
 log_info("        canonical images dir = $atlas_images_dir"); 
 if (! -e $atlas_images_dir) { error_out ("unable to find canonical images directory $atlas_images_dir");  } 
 

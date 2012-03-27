@@ -82,8 +82,8 @@ sub save_favorite_intermediates {
   my @list =();
   my @list2 =();
   push @list, $Hf_out->get_value("T2star-reg2-whs-path");
-  push @list, $Hf_out->get_value("T2W_reg2_whs-path");
-  push @list, $Hf_out->get_value("T1_reg2_whs-path");
+  push @list, $Hf_out->get_value("T2W-reg2-whs-path");
+  push @list, $Hf_out->get_value("T1-reg2-whs-path");
   push @list2, $Hf_out->get_value("T2star-reg2-whs-file");
   push @list2, $Hf_out->get_value("T2W-reg2-whs-file");
   push @list2, $Hf_out->get_value("T1-reg2-whs-file");
@@ -97,7 +97,7 @@ sub save_favorite_intermediates {
 
     # -- also convert  whs images into Byte format for easier QA in Avizo, and move to results:
     my $whs_file = shift @list2;
-    my $byte_path = "$results_dir/$whs_file\_Byte\.nii"; 
+    my $byte_path = "$results_dir/${whs_file}-Byte\.nii"; 
     my $cmd2 = "$ants_app_dir/ImageMath 3 $byte_path Byte $p";  # output first
     my $ok = execute($do_save, "convert whs image set to byte", $cmd2);
     if (! $ok) {

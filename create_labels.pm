@@ -2,12 +2,15 @@
 # create_labels.pm 
 
 # based on label_brain_0.sh by abb
-# created 2009/10/28 Sally Gewalt CIVM
-# 2009/12/09 slg iteration changes from Alex
-# 2009/12/09 slg diff syn iteration changes from Alex, orig still working after 3 days
+
+# modified 2012/03/27 james cook, modified to work for arbitrary mc pipe
+# 2011/1/20  skull ref maskfound in selected current canonical labels directory.
 # 2010/3/02  slg warpImageMultitransform changed with new ANTS version -  regarding gz??
 #                Add Byte conversion ants command to warp_label_image routine.
-# 2011/1/20  skull ref maskfound in selected current canonical labels directory.
+# 2009/12/09 slg diff syn iteration changes from Alex, orig still working after 3 days
+# 2009/12/09 slg iteration changes from Alex
+# created 2009/10/28 Sally Gewalt CIVM
+
 
 
 my $VERSION = "2011/01/21";
