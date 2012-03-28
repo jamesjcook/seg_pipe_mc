@@ -43,7 +43,7 @@ sub set_environment {
   # --- open headfile for results
   $HfResult = new Headfile ('rw', $std_headfile); # there is no file by this name yet, so can't check
 
-  $HfResult->set_value('headfile_dest_path', $std_headfile);
+  $HfResult->set_value('headfile-dest-path', $std_headfile);
   $HfResult->set_value('dir-input' , $std_input_dir);
   $HfResult->set_value('dir-result', $std_result_dir);
   $HfResult->set_value('dir-work'  , $std_work_dir);

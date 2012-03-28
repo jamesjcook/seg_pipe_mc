@@ -88,7 +88,7 @@ sub save_favorite_intermediates {
   my @list =();
   my @list2 =();
   for my $ch_id (@channel_array) {
-      push @list, $Hf_out->get_Value("${ch_id}-reg2-${atlas_id}-path");
+      push @list, $Hf_out->get_value("${ch_id}-reg2-${atlas_id}-path");
       push @list2, $Hf_out->get_value("${ch_id}-reg2-${atlas_id}-file");
   }
 
