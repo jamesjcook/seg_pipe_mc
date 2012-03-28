@@ -52,6 +52,36 @@ sub set_environment {
 
   $HfResult->set_value('engine-app-matlab'       , $g_engine_matlab_app);
   $HfResult->set_value('engine-app-ants-dir'     , $g_engine_ants_app_dir);
+  
+}
+
+# ------------------
+sub get_ants_metric_opts {
+# ------------------
+  use Env qw(PIPELINE_HOSTNAME PIPELINE_HOME BIGGUS_DISKUS);
+  if (! defined($PIPELINE_HOSTNAME)) { error_out ("Environment variable PIPELINE_HOSTNAME must be set."); }
+  if (! defined($PIPELINE_HOME)) { error_out ("Environment variable PIPELINE_HOME must be set."); }
+  if (! defined($BIGGUS_DISKUS)) { error_out ("Environment variable BIGGUS_DISKUS must be set."); }
+  if (!-d $BIGGUS_DISKUS)      { error_out ("unable to find $BIGGUS_DISKUS"); }
+  if (!-w $BIGGUS_DISKUS)      { error_out ("unable to write to $BIGGUS_DISKUS"); }
+  if (!-d $PIPELINE_HOME)      { error_out ("unable to find $PIPELINE_HOME"); }
+
+  my $ants_metrics_dir = "$PIPELINE_HOME/dependencies";
+  if (! -e $ants_metrics_dir) {
+     error_out ("$ants_metrics_dir does not exist.");
+  }
+  my $ants_metric_file  = "ants_metric_options";
+  my $ants_metrics_path = "$ants_metrics_dir/$ants_metric_file";
+
+  my $Ants_metrics = new Headfile ('ro', $ants_metrics_path);
+  if (! $Ants_metrics->check()) {
+    error_out("Unable to open ants metric constants file $ants_metrics_path\n");
+  }
+  if (! $Ants_metrics->read_headfile) {
+     error_out("Unable to read ants metric constants from headfile form file $ants_metrics_path\n");
+  }
+  return $Ants_metrics;
+#my $ants_metrics = new Headfile ('ro', $ants_metrics_path);
 }
 
 # ------------------

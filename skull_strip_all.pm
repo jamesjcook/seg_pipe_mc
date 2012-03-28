@@ -1,7 +1,9 @@
 #!/usr/local/pipeline-link/perl
 
 # skull_strip_all.pm
-# modified 2012/03/27 by james, fixed up variables to match new convetion
+# 2012/03/27 james cook, fixed up variables to match new convetion, 
+#            now skull strips arbitrary number of channel stored in 
+#            comma chanel list
 # slg made this up based on abb 11/11/09 v of mask_Ts_aug5.m 
 # created 2009/11/12 Sally Gewalt CIVM 
 
@@ -39,7 +41,7 @@ sub skull_strip_all {
   $result_path = apply_skull_mask(   "${channel1}-nii-path", $norm_mask_path, 'strip', $Hf);
 # --- store result file paths for masked results under these ids
   $Hf->set_value (   "${channel1}-strip-path",     $result_path  );
-  for my $ch_id (@channel_array[1,2]) {
+  for my $ch_id (@channel_array[1,$#channel_array]) {
       $result_path = apply_skull_mask("${ch_id}-reg2-${channel1}-path", $norm_mask_path, 'strip', $Hf);
 # --- store result file paths for masked results under these ids
       $Hf->set_value (   "${ch_id}-strip-path",     $result_path);

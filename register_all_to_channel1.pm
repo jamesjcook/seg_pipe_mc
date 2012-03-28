@@ -1,7 +1,7 @@
 #!/usr/local/pipeline-link/perl
 # register_all_to_channel1.pm 
 # modified 2012/03/27 james cook, changed to register an arbitrary number of 
-#  channels stored in the head file to the first channel.List should be in 
+#  channels stored in the head file to the first channel. List should be in 
 #  the output headfile at runno_ch_commalist,
 #  a comaseparated list of contrast channels (T1,T2W,T2star,fa,adc,dwi,e1)
 # created 2009/10/28 Sally Gewalt CIVM 
@@ -33,9 +33,9 @@ sub register_all_to_channel1 {
   log_info ("$PM version: $VERSION");
 
   my @channel_array=split(',',$Hf->get_value('runno_ch_commalist'));
-
-
-  for my $ch_id (@channel_array[1,2]) {
+  
+  for my $ch_id (@channel_array[1,$#channel_array]) {
+      print ("\n\n\t$PM now working on ch_id:$ch_id\n\n\n") if ($debug_val>=35);
       register_rigid_to_channel1("${ch_id}-nii-path", $Hf);
   }
 #  register_rigid_to_channel1('T2star_nii_path', $Hf);

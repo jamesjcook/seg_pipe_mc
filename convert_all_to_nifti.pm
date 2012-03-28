@@ -91,21 +91,9 @@ sub convert_all_to_nifti {
       }
   }
   
-
   if($#cmd_list>=0) {#_indep_forks
       execute($go, "copying dti derrived to work", @cmd_list) or error_out("failed to move nii input files to work dir");
   }
-
-
-
-#   foreach my $p (@list) {   # path to 32 bit whs result file
-#     my $cmd = "cp $p $results_dir";
-#     my $ok = execute($do_save, "copy whs result image set", $cmd);
-#     if (! $ok) {
-#       error_out("Could not copy whs images: $cmd\n");
-#     }
-
-
 
 #   # for fic the result images are .raw
 #   my $T2W_runno = $Hf_out->get_value('T2W_runno');;

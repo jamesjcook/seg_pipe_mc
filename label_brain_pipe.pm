@@ -1,18 +1,22 @@
 #!/usr/local/pipeline-link/perl
-
 # label_brain_pipe.pm 
-
-# created 2009/10/28 Sally Gewalt CIVM
-#
+# given a headfileformed by the right pipeline main script will niftify inputs, 
+# and create labels in the inputs space/orientation, will also save some results 
+# in an archive ready dirctory.
+# 
+# CHANGE LOG
+# 2012/03/28 james cook, did pile of modifications for using arbitrary atlas and channels
+#            have also modified the functions this depends on, work in progress.
+# 2010/11/02 slg add flip_z, nifti conversion knows about voxel size
 # 2010/03/03 save_favorite_intermediates () to move from work to results dir.
-# 2010/11/02 slg add flip_z
-# nifti conversion knows about voxel size
-#
+# created 2009/10/28 Sally Gewalt CIVM
+ 
+
 
 #package label_brain_pipe; # causes trouble when we label this as label_brain_pipe, not sure why, could be that its a same name as function problem.
-my $VERSION = "2010/03/03";
+my $VERSION = "2012/03/28";
 my $NAME = "Alex Badea Brain Segmentation Method";
-my $DESC = "warps WHS labels";
+my $DESC = "warps atlas labels";
 my $PM = "label_brain_pipe.pm";
 
 use strict;
@@ -47,7 +51,7 @@ sub label_brain_pipe {
 
   my ($nifti, $register, $strip, $atlas, $label) =  split('', $do_bits);
 
-  log_info ("pipeline step do bits: nifti:$nifti, register:$register, strip:$strip, atlasreg:$whs, label:$label\n");
+  log_info ("pipeline step do bits: nifti:$nifti, register:$register, strip:$strip, atlasreg:$atlas, label:$label\n");
 
   convert_all_to_nifti($nifti, $flip_y, $flip_z, $Hf_out); 
 
@@ -73,6 +77,7 @@ sub save_favorite_intermediates {
 
   my $ants_app_dir  = $Hf_out->get_value('engine-app-ants-dir');
   my $atlas_id  = $Hf_out->get_value('reg-target-atlas-id');
+  my @channel_array=split(',',$Hf_out->get_value('runno_ch_commalist'));
 
   # ---- copy the atlas aligned images for posterity to the result dir
   # do not move them in case we are debugging and need intermediate results in work dir
@@ -82,28 +87,32 @@ sub save_favorite_intermediates {
 
   my @list =();
   my @list2 =();
+  for my $ch_id (@channel_array) {
+      push @list, $Hf_out->get_Value("${ch_id}-reg2-${atlas_id}-path");
+      push @list2, $Hf_out->get_value("${ch_id}-reg2-${atlas_id}-file");
+  }
 
-  push @list, $Hf_out->get_value("T2star-reg2-whs-path");
-  push @list, $Hf_out->get_value("T2W-reg2-whs-path");
-  push @list, $Hf_out->get_value("T1-reg2-whs-path");
-  push @list2, $Hf_out->get_value("T2star-reg2-whs-file");
-  push @list2, $Hf_out->get_value("T2W-reg2-whs-file");
-  push @list2, $Hf_out->get_value("T1-reg2-whs-file");
+#   push @list, $Hf_out->get_value("T2star-reg2-${atlas_id}-path");
+#   push @list, $Hf_out->get_value("T2W-reg2-${atlas_id}-path");
+#   push @list, $Hf_out->get_value("T1-reg2-${atlas_id}-path");
+#   push @list2, $Hf_out->get_value("T2star-reg2-${atlas_id}-file");
+#   push @list2, $Hf_out->get_value("T2W-reg2-${atlas_id}-file");
+#   push @list2, $Hf_out->get_value("T1-reg2-${atlas_id}-file");
 
-  foreach my $p (@list) {   # path to 32 bit whs result file
+  foreach my $p (@list) {   # path to 32 bit atlas result file
     my $cmd = "cp $p $results_dir";
-    my $ok = execute($do_save, "copy whs result image set", $cmd);
+    my $ok = execute($do_save, "copy ${atlas_id} result image set", $cmd);
     if (! $ok) {
-      error_out("Could not copy whs images: $cmd\n");
+      error_out("Could not copy ${atlas_id} images: $cmd\n");
     }
 
-    # -- also convert  whs images into Byte format for easier QA in Avizo, and move to results:
-    my $whs_file = shift @list2;
-    my $byte_path = "$results_dir/${whs_file}-Byte\.nii"; 
+    # -- also convert  atlas images into Byte format for easier QA in Avizo, and move to results:
+    my $atlas_file = shift @list2;
+    my $byte_path = "$results_dir/${atlas_file}-Byte\.nii"; 
     my $cmd2 = "$ants_app_dir/ImageMath 3 $byte_path Byte $p";  # output first
-    my $ok = execute($do_save, "convert whs image set to byte", $cmd2);
+    my $ok = execute($do_save, "convert ${atlas_id} image set to byte", $cmd2);
     if (! $ok) {
-        error_out("Could not convert whs to byte: $cmd2\n");
+        error_out("Could not convert ${atlas_id} to byte: $cmd2\n");
      }
   }
 

@@ -1,6 +1,7 @@
 #!/usr/local/pipeline-link/perl
 
-# convert_all_to_nifti.pm 
+# convert_all_to_nifti_hc_chann.pm 
+# t1 t2w t2s hardcoded channel convert to nifti
 
 # created 2010/11/02 Sally Gewalt CIVM
 # calls nifti code that can get dims from header
@@ -9,7 +10,7 @@ use strict;
 require convert_to_nifti;
 
 # ------------------
-sub convert_all_to_nifti {
+sub convert_all_to_nifti_hc_chann {
 # ------------------
 # convert the source image volumes used in this SOP to nifti format (.nii)
 # could use image name (suffix) to figure out datatype

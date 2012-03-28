@@ -27,6 +27,8 @@ use seg_pipe;
 use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT );
 #$g_engine_ants_app_dir $g_engine_matlab_app # these really dont need to be global
 my $debug_val=10;
+my $ANTSAFFINEMETRIC = "MI"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by chaning the naem of this in the headfile, and looking up those different variable names in the pipe.
+my $ANTSDIFFSyNMETRIC = "CC"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by chaning the naem of this in the headfile, and looking up those different variable names in the pipe.
 #@EXPORT_OK = qw(PIPELINE_VERSION PIPELINE_NAME PIPELINE_DESC);
 
 #my $g_engine_ants_app_dir,$g_engine_matlab_app;
@@ -49,7 +51,7 @@ my $pull_source_images = $arghash{data_pull};      # -e
 my $extra_runno_suffix = $arghash{extra_runno_suffix}; # -s 
 my $do_bit_mask = $arghash{bit_mask};              # -b
 my $atlas_labels_dir = $arghash{atlas_labels_dir}; # -l
-my $atlas_id = $HfResult->get_value("atlas_id");   # -a that a is subject to change
+my $atlas_id = $arghash{atlas_id};   # -a that a is subject to change
 my $atlas_images_dir = $arghash{atlas_images_dir}; # -i
 my $cmd_line = $arghash{cmd_line};
 
@@ -74,18 +76,34 @@ if (! -e $atlas_labels_dir) { error_out ("unable to find canonical labels direct
 $HfResult->set_value('dir-atlas-labels', $atlas_labels_dir);
 
 if ($atlas_images_dir eq "DEFAULT") { # handle -i and -a options
-    $HfResult -> set_value('reg-target-atlas-id','whs');
+    $atlas_id = 'whs';
     $atlas_images_dir = $HfResult->get_value('dir-whs-images-default');
 } else {
     if ($atlas_id eq 'DEFAULT') { 
-	$HfResult -> set_value('seg-pipe-target-atlas-id',$atlas_id);
-    } else {
-	$HfResult -> set_value('seg-pipe-target-atlas-id','atlas');
+	$atlas_id='whs';
     }
 }
+$HfResult->set_value('reg-target-atlas-id','whs');
 $HfResult->set_value('dir-atlas-images', $atlas_images_dir);
 log_info("        canonical images dir = $atlas_images_dir"); 
 if (! -e $atlas_images_dir) { error_out ("unable to find canonical images directory $atlas_images_dir");  } 
+
+$HfResult->set_value('ANTS-affine-metric',$ANTSAFFINEMETRIC);
+$HfResult->set_value('ANTS-diff-SyN-metric',$ANTSDIFFSyNMETRIC);
+my $HfAntsmetrics = get_ants_metric_opts();
+
+my $transformtype="affine";
+for my $ch_id (@channel_array) { 
+    my $opt=$HfAntsmetrics->get_value("${transformtype}-${ANTSAFFINEMETRIC}-${ch_id}");
+    if ($opt eq 'UNDEFINED_VALUE' || $opt eq 'NO_KEY') { error_out("could not get metric ${transformtype}-${ANTSAFFINEMETRIC}-${ch_id} from ants $transformtype metric options");}
+    $HfResult->set_value ("${transformtype}-${ANTSAFFINEMETRIC}-${ch_id}-weighting",$opt);
+} 
+$transformtype="diff-SyN";
+for my $ch_id (@channel_array) { 
+    my $opt=$HfAntsmetrics->get_value("${transformtype}-${ANTSDIFFSyNMETRIC}-${ch_id}");
+    if ($opt eq 'UNDEFINED_VALUE' || $opt eq 'NO_KEY') { error_out("could not get metric ${transformtype}-${ANTSDIFFSyNMETRIC}-${ch_id} from ants $transformtype metric options");}
+    $HfResult->set_value ("${transformtype}-${ANTSDIFFSyNMETRIC}-${ch_id}-weighting",$opt);
+}
 
 
 print 
@@ -100,7 +118,24 @@ print
     domask=$do_bit_mask
     atlas_labels_dir=$atlas_labels_dir
     atlas_images_dir=$atlas_images_dir
-    Base name that will be used to ID this segmentation: $nominal_runno\n") if ( $debug_val >= 5); # print this most of the time, should modify verbosity flag.
+    Base name that will be used to ID this segmentation: $nominal_runno\n") if ( $debug_val >= 5); # print this most of the time, should make verbosity flag.
+
+###
+# error check atlas
+###
+my @list;
+my $err=''; #error message buffer, so we'll see all errors at once;
+my $labelfile ="$atlas_labels_dir/${atlas_id}_labels.nii";
+for my $ch_id (@channel_array) {
+    my $imagefile ="$atlas_images_dir/${atlas_id}_${ch_id}.nii";
+    if (!-e $imagefile) {
+	$err = $err . "\n\t$imagefile";
+    }
+}
+if (!-e $labelfile) {
+    $err = $err . "\n\t$labelfile";
+}
+error_out ("$PIPELINE_NAME Missing atlas files:$err") unless ($err eq '');
 
 #print "Base name that will be used to ID this segmentation: $nominal_runno\n";
 
@@ -121,9 +156,12 @@ my $dest_dir = $HfResult->get_value('dir-input'); # for retrieved images
 if (! -e $dest_dir) { mkdir $dest_dir; }
 if (! -e $dest_dir) { error_out ("no dest dir! $dest_dir"); }
 #for my $rid split(',',$channel_order) {
-for($i=0;$i<=$#channel_array;$i++) {
-    print("retrieving archive data for channel ${channel_array[$i]}\n");
-    locate_data($pull_source_images, "${channel_array[$i]}" , $HfResult);
+#for($i=0;$i<=$#channel_array;$i++) {
+for my $ch_id (@channel_array) {
+    #print("retrieving archive data for channel ${channel_array[$i]}\n");
+    #locate_data($pull_source_images, "${channel_array[$i]}" , $HfResult);
+    print("retrieving archive data for channel ${ch_id}\n");
+    locate_data($pull_source_images, "${ch_id}" , $HfResult);
 }
 #locate_data($pull_source_images, "T1"     , $HfResult);
 #locate_data($pull_source_images, "T2W"    , $HfResult);

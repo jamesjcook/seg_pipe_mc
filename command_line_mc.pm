@@ -23,6 +23,7 @@ use Getopt::Std;
 # grab the variables from the seg_pipe.pm file in the script directory, all shared globals stored there, needs full testing to determine functionality
 use seg_pipe; # pipe info variable definitions
 use label_brain_pipe; # test_mode variable definiton
+# the use vars line pulls variables deffinitons from any begin block in any module included. 
 use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT $test_mode);
 
 
@@ -137,9 +138,9 @@ sub command_line_mc {
   my $projsource=pop @ARGV;
   my $err;
   # add to the error string unless we have good proj source or dest
-  $err ="source project bad format! <$projsource>  " unless( $projsource ~= m/[0-9]{2}[.]\w{1,50}[.][0-9]+/);
-  $err = $err . "destination project bad format!<$projdest>" unless( $projdest ~= m/[0-9]{2}[.]\w{1,50}[.][0-9]+/);
-  if( $err neq '' ) { error_out($err); }
+  $err ="source project bad format! <$projsource>  " unless( $projsource =~ m/[0-9]{2}[.]\w{1,50}[.][0-9]+/ );
+  $err = $err . "destination project bad format!<$projdest>" unless( $projdest =~ m/[0-9]{2}[.]\w{1,50}[.][0-9]+/ );
+  error_out("$err") unless( $err eq '' );
 
   $projlist= $projsource . ',' . $projdest ;
   print "$projlist : projin,projout\n" if ($debug_val>=45);
@@ -233,7 +234,7 @@ sub command_line_mc {
   $arg_hash{atlas_labels_dir}=$atlas_labels_dir;
 
   my $atlas_images_dir = "DEFAULT"; # canonical images dir
-  my $atlas_id = "DEFAULT"
+  my $atlas_id = "DEFAULT";
   if (defined $options{i}) {  # -i
      $atlas_images_dir = $options{i};
      $cmd_line = "-i $atlas_labels_dir " . $cmd_line;
@@ -244,7 +245,7 @@ sub command_line_mc {
   }
   $arg_hash{atlas_images_dir}=$atlas_images_dir;
   $arg_hash{atlas_id}=$atlas_id;
-  $cmd_line = "-" . join('',@singleopts). $cmd_line;
+  $cmd_line = "-" . join('',@singleopts) . " " . $cmd_line;
 
 
   if (0) { # example with options....
