@@ -72,21 +72,25 @@ sub usage_message_mc {
 usage:
   seg_pipe \<options\> runno_channel1  [runno_channel2]  [runno_channel3]  subproj_inputs  subproj_result
     required args:
-     runno_channel1_set : runno of the input channel1, default is a T1 image set (must be available in the archive). 
-     runno_channel2_set : runno of the input channel2, default is a T2W image set. (optional)
-     runno_channel3_set : runno of the input channel3, default is a T2star image set. (optional)
-     subproj_inputs     : the subproject the input runnos were collected for (and archived under). 
-     subproj_result     : the subproject associated with and for storing (image, label) results of this program. 
+     runno_channel1_set : runno of the input channel1, default is a T1 image set (all must be available in the archive). 
+     runno_channel2_set : runno of the input channel2, default is a T2W image set. (optional)(all must be available in the archive). 
+     runno_channel3_set : runno of the input channel3, default is a T2star image set. (optional)(all must be available in the archive). 
+     subproj_inputs     : source subprojcet, the subproject the input runnos were collected for (and archived under). 
+     subproj_result     : destination subproject, the subproject associated with and for storing (image, label) results of this program. 
    options:
-     -c         : Comma list of channels. The default is T1,T2W,T2star. Suppored channels T1,T2W,T2star,adc,dwi,e1,fa
-     -e         : if used, the runnos will not be copied from the archive (they must be present).
-     -y         : if used, input images will be flipped in y before use
-     -z         : if used, input images will be flipped in z before use
-     -s  suffix : optional suffix on default result runno (doc test params?). Must be ok for filename embed. 
-     -l  dir    : change canonical labels directory from default
-     -i  dir    : change canonical images directory from default
-     -b do_bit_mask : default: 11111 to do all 5 steps; 01111 to skip first step, etc. Steps: nifti, register, strip, whs, label.
+     -c             : Comma list of channels. The default is T1,T2W,T2star. Suppored channels T1,T2W,T2star,adc,dwi,e1,fa
+     -e             : if used, the runnos will not be copied from the archive (they must be present).
+     -y             : if used, input images will be flipped in y before use
+     -z             : if used, input images will be flipped in z before use
+     -s  suffix     : optional suffix on default result runno (doc test params?). Must be ok for filename embed. 
+     -l  dir        : change canonical labels directory from default, directory must contain <atlas_id>_<contrast>.nii files
+     -a  atlas_id   : id tag for custom atlas, ONLY USED with -i option otherwise ignored, specifys the atlas_id part of the filename, 
+                      whs for whs atlas, otherwise defautls to \"atlas\"
+     -i  dir        : change canonical images directory from default, directory must contain <atlas_id>_<contrast>.nii files
+     -b do_bit_mask : default: 11111 to do all 5 steps; 01111 to skip first step, etc. Steps: nifti, register, strip, atlas-reg, label.
                       Skipping is only from gross testing of commands created and not guaranteed to produce results.
+     -t             : test mode, cuts all iterations for ants to 1x0x0x0, really fun with bit mask for rapid code testing. 
+                      eg, this option is NOT FOR REGULAR USERS. 
 
 version: $PIPELINE_VERSION 
 
@@ -109,7 +113,7 @@ sub command_line_mc {
 
   print "unprocessed args: @ARGV\n" if ($debug_val >=35);;
   my %options = ();
-  if (! getopts('oes:b:yztc:i:l:', \%options)) {
+  if (! getopts('aoes:b:yztc:i:l:', \%options)) {
     print "Problem with command line options.\n";
     usage_message_mc("problem with getopts");
   } 
@@ -126,12 +130,17 @@ sub command_line_mc {
 #  my @arg_list = ();
   my %arg_hash ;
   my $projlist='';
-  my $runnolist='';
-
+  my $runnolist='';  # later it might be nice to set up the runno list to optionally grab a contrast from the runno, like <contrast_id>CIVMRUNNO 
   if ($#ARGV < 0) { usage_message_mc("Missing required argument on command line"); }
   my $projdest=pop @ARGV;
   if ($#ARGV < 0) { usage_message_mc("Missing required argument on command line"); }
   my $projsource=pop @ARGV;
+  my $err;
+  # add to the error string unless we have good proj source or dest
+  $err ="source project bad format! <$projsource>  " unless( $projsource ~= m/[0-9]{2}[.]\w{1,50}[.][0-9]+/);
+  $err = $err . "destination project bad format!<$projdest>" unless( $projdest ~= m/[0-9]{2}[.]\w{1,50}[.][0-9]+/);
+  if( $err neq '' ) { error_out($err); }
+
   $projlist= $projsource . ',' . $projdest ;
   print "$projlist : projin,projout\n" if ($debug_val>=45);
 #  unshift @arg_list,$projlist; #prepend projlist
@@ -224,12 +233,17 @@ sub command_line_mc {
   $arg_hash{atlas_labels_dir}=$atlas_labels_dir;
 
   my $atlas_images_dir = "DEFAULT"; # canonical images dir
+  my $atlas_id = "DEFAULT"
   if (defined $options{i}) {  # -i
      $atlas_images_dir = $options{i};
      $cmd_line = "-i $atlas_labels_dir " . $cmd_line;
+     if (defined $options{a}) { # -a 
+	 $atlas_id = $options{a};
+	 $cmd_line = "-a $atlas_id " . $cmd_line;
+     }
   }
   $arg_hash{atlas_images_dir}=$atlas_images_dir;
-
+  $arg_hash{atlas_id}=$atlas_id;
   $cmd_line = "-" . join('',@singleopts). $cmd_line;
 
 

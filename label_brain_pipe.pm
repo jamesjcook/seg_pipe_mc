@@ -24,7 +24,7 @@ require create_labels;
 require convert_all_to_nifti;
 require registration;
 require image_math;
-require register_all_to_whs;
+require register_all_to_atlas;
 
 # fancy begin block and use vars to define a world global variable, available to any module used at the same time as this one
 BEGIN {
@@ -45,9 +45,9 @@ sub label_brain_pipe {
   log_info ("$PM desc: $DESC");
   log_info ("$PM version: $VERSION");
 
-  my ($nifti, $register, $strip, $whs, $label) =  split('', $do_bits);
+  my ($nifti, $register, $strip, $atlas, $label) =  split('', $do_bits);
 
-  log_info ("pipeline step do bits: nifti:$nifti, register:$register, strip:$strip, whs:$whs, label:$label\n");
+  log_info ("pipeline step do bits: nifti:$nifti, register:$register, strip:$strip, atlasreg:$whs, label:$label\n");
 
   convert_all_to_nifti($nifti, $flip_y, $flip_z, $Hf_out); 
 
@@ -56,11 +56,11 @@ sub label_brain_pipe {
 
   skull_strip_all($strip, $Hf_out);
 
-  register_all_to_whs($whs, $Hf_out);
+  register_all_to_atlas($atlas, $Hf_out);
 
   create_labels($label, $Hf_out);
 
-  #save_favorite_intermediates ($whs, $Hf_out);
+  #save_favorite_intermediates ($atlas, $Hf_out);
   save_favorite_intermediates (1, $Hf_out);
 }
 
@@ -72,15 +72,17 @@ sub save_favorite_intermediates {
   my ($do_save, $Hf_out) = @_;
 
   my $ants_app_dir  = $Hf_out->get_value('engine-app-ants-dir');
+  my $atlas_id  = $Hf_out->get_value('reg-target-atlas-id');
 
-  # ---- copy the whs aligned images for posterity to the result dir
+  # ---- copy the atlas aligned images for posterity to the result dir
   # do not move them in case we are debugging and need intermediate results in work dir
 
-  log_info ("$PM copying whs aligned images to results dir");
+  log_info ("$PM copying atlas aligned images to results dir");
   my $results_dir = $Hf_out->get_value("dir-result");
 
   my @list =();
   my @list2 =();
+
   push @list, $Hf_out->get_value("T2star-reg2-whs-path");
   push @list, $Hf_out->get_value("T2W-reg2-whs-path");
   push @list, $Hf_out->get_value("T1-reg2-whs-path");

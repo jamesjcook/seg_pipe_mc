@@ -29,6 +29,7 @@ sub set_environment {
 # HfResult is a global, i dont think i like that convention, better to play pass the hf ref i'd say.
 # to support this HFresult i've made the global world global for these scripts, why go back and forth between conventions...
 # 
+# this is just to make main_seg_pipe easier to read.
   my ($runno) = @_;
   #print ("runno=$runno\n");
   my ($std_input_dir, $std_work_dir, $std_result_dir, $std_headfile, $std_whs_images_dir, $std_whs_labels_dir) = get_engine_dependencies($runno);

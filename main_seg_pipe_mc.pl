@@ -24,7 +24,8 @@ require retrieve_archived_data;
 require label_brain_pipe;
 use seg_pipe;
 # these variables are defined in seg_pipe.pm
-use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT $g_engine_ants_app_dir $g_engine_matlab_app);
+use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT );
+#$g_engine_ants_app_dir $g_engine_matlab_app # these really dont need to be global
 my $debug_val=10;
 #@EXPORT_OK = qw(PIPELINE_VERSION PIPELINE_NAME PIPELINE_DESC);
 
@@ -42,13 +43,14 @@ my %arghash=%{$arg_hash_ref};
 my @runno_array                                                 = split(',',$arghash{runnolist});
 my @channel_array                                               = split(',',$arghash{channel_order});
 my ($subproject_source_runnos, $subproject_segmentation_result) = split( ',',$arghash{projlist});
-my $flip_y = $arghash{flip_y}; 
-my $flip_z = $arghash{flip_z};
-my $pull_source_images = $arghash{data_pull};
-my $extra_runno_suffix = $arghash{extra_runno_suffix};
-my $do_bit_mask = $arghash{bit_mask};
-my $atlas_labels_dir = $arghash{atlas_labels_dir};
-my $atlas_images_dir = $arghash{atlas_images_dir};
+my $flip_y = $arghash{flip_y};                     # -y 
+my $flip_z = $arghash{flip_z};                     # -z
+my $pull_source_images = $arghash{data_pull};      # -e
+my $extra_runno_suffix = $arghash{extra_runno_suffix}; # -s 
+my $do_bit_mask = $arghash{bit_mask};              # -b
+my $atlas_labels_dir = $arghash{atlas_labels_dir}; # -l
+my $atlas_id = $HfResult->get_value("atlas_id");   # -a that a is subject to change
+my $atlas_images_dir = $arghash{atlas_images_dir}; # -i
 my $cmd_line = $arghash{cmd_line};
 
 
@@ -64,16 +66,24 @@ if ($extra_runno_suffix eq "--NONE") {
   $nominal_runno = $runno_array[0] . $extra_runno_suffix; 
 }
 set_environment($nominal_runno); # opens headfile, log file
-if ($atlas_labels_dir eq "DEFAULT") {
-  $atlas_labels_dir = $HfResult->get_value('dir-whs-labels-default');
+if ($atlas_labels_dir eq "DEFAULT") { # handle -l option
+    $atlas_labels_dir = $HfResult->get_value('dir-whs-labels-default');
 }
 log_info("  Using canonical labels dir = $atlas_labels_dir"); 
 if (! -e $atlas_labels_dir) { error_out ("unable to find canonical labels directory $atlas_labels_dir");  } 
-$HfResult->set_value('dir-whs-labels', $atlas_labels_dir);
-if ($atlas_images_dir eq "DEFAULT") {
-  $atlas_images_dir = $HfResult->get_value('dir-whs-images-default');
+$HfResult->set_value('dir-atlas-labels', $atlas_labels_dir);
+
+if ($atlas_images_dir eq "DEFAULT") { # handle -i and -a options
+    $HfResult -> set_value('reg-target-atlas-id','whs');
+    $atlas_images_dir = $HfResult->get_value('dir-whs-images-default');
+} else {
+    if ($atlas_id eq 'DEFAULT') { 
+	$HfResult -> set_value('seg-pipe-target-atlas-id',$atlas_id);
+    } else {
+	$HfResult -> set_value('seg-pipe-target-atlas-id','atlas');
+    }
 }
-$HfResult->set_value('dir-whs-images', $atlas_images_dir);
+$HfResult->set_value('dir-atlas-images', $atlas_images_dir);
 log_info("        canonical images dir = $atlas_images_dir"); 
 if (! -e $atlas_images_dir) { error_out ("unable to find canonical images directory $atlas_images_dir");  } 
 
