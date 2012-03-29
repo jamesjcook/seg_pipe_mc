@@ -108,7 +108,7 @@ sub save_favorite_intermediates {
 
     # -- also convert  atlas images into Byte format for easier QA in Avizo, and move to results:
     my $atlas_file = shift @list2;
-    my $byte_path = "$results_dir/${atlas_file}-Byte\.nii"; 
+    my $byte_path = "$results_dir/${atlas_file}_Byte\.nii"; 
     my $cmd2 = "$ants_app_dir/ImageMath 3 $byte_path Byte $p";  # output first
     my $ok = execute($do_save, "convert ${atlas_id} image set to byte", $cmd2);
     if (! $ok) {

@@ -34,7 +34,7 @@ sub skull_strip_all {
   log_info ("-------reconcile headers: make_sane_mask start");
   my $mask_path_tmp  = make_skull_mask ("${channel1}-nii-path", 2,  $Hf);
   make_sane_mask($mask_path_tmp,"${channel3}-nii-path", $Hf);
-  my $norm_mask_path = normalize_skull_mask ($mask_path_tmp, 'norm-mask', $Hf);
+  my $norm_mask_path = normalize_skull_mask ($mask_path_tmp, 'norm_mask', $Hf);
   $Hf->set_value('skull-norm-mask-path', $norm_mask_path);  # save mask to aid labelling
   my $result_path;
 
@@ -119,7 +119,7 @@ sub make_skull_mask {
   if (!-e $template_path)  {error_out("$PM make_skull_mask: missing mask template $template_path\n")}
 
   my $nii_less_path = remove_dot_suffix($template_path);
-  my $mask_path     = "${nii_less_path}-mask\.nii";
+  my $mask_path     = "${nii_less_path}_mask\.nii";
 
   my $args = "\'$template_path\', $dim_divisor, \'$mask_path\'";
   my $unique_id = "make_$PID\_";
