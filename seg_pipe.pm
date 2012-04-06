@@ -1,6 +1,11 @@
 #!/usr/local/pipeline-link/perl
 # global def for seg pipe, should be different for each seg pipe version, this one is for seg_pipe_mc.
-#package seg_pipe; these little packages dont like this line, not sure why, it causes a failure 
+# contains very specific funcitons, ... practially a class deffinition for the 3 functions, 
+#  set_environment          sets up basic directory's we'll work out of
+#  get_ants_metric_opts     loads ants metric file into a hf with keys for each item
+#  get_engine_dependencies  loads engine installation settings
+#
+# package seg_pipe; these little packages dont like this line, not sure why, it causes a failure 
 use warnings;
 use strict;
 
@@ -9,18 +14,20 @@ BEGIN {
     use Exporter(); 
     @seg_pipe::ISA = qw(Exporter);
     @seg_pipe::Export = qw();
-    @seg_pipe::EXPORT_OK = qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT $g_engine_ants_app_dir $g_engine_matlab_app); # $test_mode
+    @seg_pipe::EXPORT_OK = qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT ); # $test_mode
 }
 # this use vars line telsl us which variables we're going to use in this module.
-use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT $g_engine_ants_app_dir $g_engine_matlab_app); #$test_mode
+use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT ); #$test_mode
 $PIPELINE_VERSION = "2012/03/21";
 $PIPELINE_NAME = "Multiple contrast Brain Seg Pipeline With hopefully arbitrary channels"; 
 $PIPELINE_DESC = "CIVM MRI mouse brain image segmentation using multiple contrasts";
 $HfResult = "unset";
 $GOODEXIT = 0;
 $BADEXIT  = 1;
-
-
+my $debug_val=35;
+my $g_engine_ants_app_dir;
+my $g_engine_matlab_app;
+my $g_engine_fsl_dir;
 
 # ------------------
 sub set_environment {
@@ -31,7 +38,7 @@ sub set_environment {
 # 
 # this is just to make main_seg_pipe easier to read.
   my ($runno) = @_;
-  #print ("runno=$runno\n");
+  print ("runno=$runno\n") if ($debug_val>=35);
   my ($std_input_dir, $std_work_dir, $std_result_dir, $std_headfile, $std_whs_images_dir, $std_whs_labels_dir) = get_engine_dependencies($runno);
 
   # --- open log
@@ -52,6 +59,7 @@ sub set_environment {
 
   $HfResult->set_value('engine-app-matlab'       , $g_engine_matlab_app);
   $HfResult->set_value('engine-app-ants-dir'     , $g_engine_ants_app_dir);
+  $HfResult->set_value('engine-app-fsl-dir'       , $g_engine_fsl_dir);
   
 }
 
@@ -97,6 +105,7 @@ sub get_engine_dependencies {
   if (!-w $BIGGUS_DISKUS)      { error_out ("unable to write to $BIGGUS_DISKUS"); }
   if (!-d $PIPELINE_HOME)      { error_out ("unable to find $PIPELINE_HOME"); }
 
+
   my $engine_constants_dir = "$PIPELINE_HOME/dependencies";
   if (! -e $engine_constants_dir) {
      error_out ("$engine_constants_dir does not exist.");
@@ -111,8 +120,9 @@ sub get_engine_dependencies {
   if (! $Engine_constants->read_headfile) {
      error_out("Unable to read engine constants from headfile form file $engine_constants_path\n");
   }
-  $g_engine_matlab_app = $Engine_constants->get_value('engine_app_matlab');
-  $g_engine_ants_app_dir   = $Engine_constants->get_value('engine_app_ants_dir');
+  $g_engine_matlab_app   = $Engine_constants->get_value('engine_app_matlab');
+  $g_engine_ants_app_dir = $Engine_constants->get_value('engine_app_ants_dir');
+  $g_engine_fsl_dir      = $Engine_constants->get_value('engine_app_fsl_dir');
   if (! -e $g_engine_matlab_app)   { error_out ("unable to find $g_engine_matlab_app");} 
   if (! -e $g_engine_ants_app_dir) { error_out ("unable to find $g_engine_ants_app_dir");  } 
 
@@ -138,4 +148,6 @@ sub get_engine_dependencies {
   return($conventional_input_dir, $conventional_work_dir, $conventional_result_dir, $conventional_headfile, 
       $engine_whs_images_dir, $engine_whs_labels_dir);
 }
+
+1;
 

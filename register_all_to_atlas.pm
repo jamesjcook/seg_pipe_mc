@@ -1,5 +1,4 @@
 #!/usr/local/pipeline-link/perl
-
 # register_all_to_atlas.pm 
 # 2012/03/28 james cook, changed name to remove whs in favor of atlas, 
 #            added arbitrary atlas versions of functions, and some cleaning
@@ -42,17 +41,11 @@ sub register_all_to_atlas {
 #      apply_whs_transform("${ch_id}-strip-path",$atlas_xform_path, $Hf);
       apply_atlas_transform("${ch_id}-strip-path",$atlas_xform_path, $Hf);
   }
-#  apply_whs_transform ('T2star_strip_path', $whs_xform_path, $Hf);
-#  apply_whs_transform (   'T2W_strip_path', $whs_xform_path, $Hf);
-#  apply_whs_transform (    'T1_strip_path', $whs_xform_path, $Hf);
-
   if ($ggo) {
     unlink($atlas_xform_path);  # delete transform, but could keep to combine transforms
   }
-
   # sets 'T2W_reg2_whs_path', 'T1_reg2_whs_path', 'T2star_reg2_whs_path';
 }
-
 
 # ------------------
 sub create_transform_to_atlas_channel_id {

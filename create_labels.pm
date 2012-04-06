@@ -23,9 +23,8 @@ my $PM_stages=5;
 
 use strict;
 use label_brain_pipe;
-use vars qw($test_mode);
-
-my $nchannels=2; # number of channels to include in metrics, be nice to use all channels, but thats for the future. 
+use vars qw($test_mode $nchannels);
+#nchannels is global number of channels to include in metrics, be nice to use all channels, but thats for the future. 
 
 # both create tranforms subs use these:
 my $gcurrent_T2W_path;
@@ -34,7 +33,7 @@ my $gwhs_T2W_path;
 my $gwhs_T1_path;
 
 my $DEBUG_GO = 1;
-my $debug_val = 35;
+my $debug_val = 5;
 my $SYNSETTING=0.5;
 #my $METRIC = "MI"; # could be any of the ants supported metrics, defined in main as a global, so bad to do that. should really chage that....
 
@@ -79,7 +78,7 @@ sub create_multi_channel_affine_transform {
 # this would change the funtion flow from if metric a, hardcode value b to load metrics, if metric a, value read b .
 
   my ($Hf) = @_;
-  print("\n\n\t$PM stage 1/$PM_stages \"create_multi_channel_affine_transform\" \n\n\n") if ($debug_val >= 35) ;
+  print("\n\n\t$PM stage 1/$PM_stages \"create_multi_channel_affine_transform\" \n") if ($debug_val >= 35) ;
   my $atlas_id         = $Hf->get_value('reg-target-atlas-id');
   my $atlas_images_dir = $Hf->get_value('dir-atlas-images');
   my $ants_app_dir     = $Hf->get_value('engine-app-ants-dir');
@@ -89,18 +88,26 @@ sub create_multi_channel_affine_transform {
   my $channel1 = ${channel_array[0]};
   my $result_transform_path_base = "$work_dir/${channel1}_label_transform_";
  
-# build metrics, only using first two channels for now, i want to change that later. 
+# build metrics, only using first two channels for now, that is set in the main_seg_pipe_mc script with nchannels variable, 
+# if you only specify one channel it will only use one.
   my $metrics='';
-  for my $ch_id (@channel_array[0,$nchannels-1]) {
+
+  for(my $chindex=0;$chindex<$nchannels;$chindex++) {
+      my $ch_id=$channel_array[$chindex];
+      print("\tadding metric for ch_id:$ch_id\n");
       my $channel_option = $Hf->get_value("affine-${metric}-${ch_id}-weighting");
       if ( $channel_option eq 'NO_KEY' ) { error_out ("could not find metric affine-${metric}-${ch_id}-weighting "); }
       my $channel_path      = $Hf->get_value("${ch_id}-reg2-${atlas_id}-path");
       my $atlas_image_path  = "${atlas_images_dir}/${atlas_id}_${ch_id}.nii"; # $Hf->get_value();
       if ( ! -e $channel_path ) { # crap out on missing file
-	  error_out ("$PM create_multi_channel_affine_transform: $channel_path does not exist<${ch_id}-reg2-${atlas_id}-path>");
+	  error_out ("$PM create_multi_channel_affine_transform: $channel_path does not exist<${ch_id}-reg2-${atlas_id}-path>"); 
       } else {
 	  $metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option}]"; 
       }
+  }
+  if ($debug_val>=35) {  
+      print("\n\n\n"); 
+      sleep(15);
   }
 # ########
 # #for mutual information metric use THIS IS CONTROLed ELSEWHRE NOW< SET THE ANTSAFFINEMETRIC VALUE at the start of main_seg_pipe_mc.pl
@@ -111,12 +118,17 @@ sub create_multi_channel_affine_transform {
 #   #my $metric0 = "$gwhs_T2W_path,$gcurrent_T2W_path,0.8,2";
 #   #my $metric1 = "$gwhs_T1_path,$gcurrent_T1_path,1,2:";
 # ######
-  my $other_options = "-i 0 --number-of-affine-iterations 3000x3000x3000x3000 --MI-option 32x32000 --use-Histogram-Matching --affine-gradient-descent-option 0.2x0.5x0.0001x0.0001";
+  my $affine_iter="3000x3000x3000x3000";
   if ( defined($test_mode)) {
       if( $test_mode == 1 ) {
-	  $other_options = "-i 0 --number-of-affine-iterations 1x0x0x0 --MI-option 32x32000 --use-Histogram-Matching --affine-gradient-descent-option 0.2x0.5x0.0001x0.0001"; 
-      }
-  }
+	  $affine_iter="1x0x0x0";
+      }}
+  my $other_options = "-i 0 --number-of-affine-iterations $affine_iter --MI-option 32x32000 --use-Histogram-Matching --affine-gradient-descent-option 0.2x0.5x0.0001x0.0001";
+#   if ( defined($test_mode)) {
+#       if( $test_mode == 1 ) {
+# 	  $other_options = "-i 0 --number-of-affine-iterations 1x0x0x0 --MI-option 32x32000 --use-Histogram-Matching --affine-gradient-descent-option 0.2x0.5x0.0001x0.0001"; 
+#       }
+#   }
 #for mutual information metric use 
 # my $cmd = "$ants_app_dir/ants 3 -m ${METRIC}[$metric0] -m ${METRIC}[$metric1] -o $result_transform_path_base $other_options";
  my $cmd = "$ants_app_dir/ants 3 $metrics -o $result_transform_path_base $other_options";
@@ -178,14 +190,19 @@ my $metric1 = "$gwhs_T2W_path,$gcurrent_T2W_path,0.3,32";
   #my $metric0 = "$gwhs_T2W_path,$gcurrent_T2W_path,0.8,2";
   #my $metric1 = "$gwhs_T1_path,$gcurrent_T1_path,1,2:";
 ######
-
-
-  my $other_options = "-i 0 --number-of-affine-iterations 3000x3000x3000x3000 --MI-option 32x32000 --use-Histogram-Matching --affine-gradient-descent-option 0.2x0.5x0.0001x0.0001";
+  my $affine_iter="3000x3000x3000x300";
   if ( defined($test_mode)) {
       if( $test_mode == 1 ) {
-	  $other_options = "-i 0 --number-of-affine-iterations 1x0x0x0 --MI-option 32x32000 --use-Histogram-Matching --affine-gradient-descent-option 0.2x0.5x0.0001x0.0001"; 
+	  $affine_iter="1x0x0x0";
       }
   }
+
+  my $other_options = "-i 0 --number-of-affine-iterations 3000x3000x3000x3000 --MI-option 32x32000 --use-Histogram-Matching --affine-gradient-descent-option 0.2x0.5x0.0001x0.0001";
+#  if ( defined($test_mode)) {
+#      if( $test_mode == 1 ) {
+  $other_options = "-i 0 --number-of-affine-iterations $affine_iter --MI-option 32x32000 --use-Histogram-Matching --affine-gradient-descent-option 0.2x0.5x0.0001x0.0001"; 
+#      }
+#  }
   
 
  
@@ -222,7 +239,6 @@ sub create_multi_channel_diff_syn_transform {
   my $atlas_images_dir = $Hf->get_value('dir-atlas-images');
   my $ants_app_dir     = $Hf->get_value('engine-app-ants-dir');
   my $work_dir         = $Hf->get_value('dir-work');
-
   my $metric           = $Hf->get_value('ANTS-diff-SyN-metric');
   my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
   my $channel1 = ${channel_array[0]};
@@ -231,7 +247,8 @@ sub create_multi_channel_diff_syn_transform {
   #/////// define options for transform ////////// 
 # build metrics, only using first two channels for now, i want to change that later. 
   my $metrics='';
-  for my $ch_id (@channel_array[0,$nchannels-1]) {
+  for(my $chindex=0;$chindex<$nchannels;$chindex++) {
+      my $ch_id=$channel_array[$chindex];
       my $channel_option = $Hf->get_value("diff-SyN-${metric}-${ch_id}-weighting");
       if ( $channel_option eq 'NO_KEY' ) { error_out ("could not find metric diff-SyN-${metric}-${ch_id}-weighting "); }
       my $channel_path      = $Hf->get_value("${ch_id}-reg2-${atlas_id}-path");
@@ -242,25 +259,15 @@ sub create_multi_channel_diff_syn_transform {
 	  $metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option}]"; 
       }
   }
-
-# #for MI
-#   my $metric0 = "$gwhs_T1_path,$gcurrent_T1_path,0.7,4"; 
-#   my $metric1 = "$gwhs_T2W_path,$gcurrent_T2W_path,0.3,4";
-# #for PR
-#  # my $metric0 = "$gcurrent_T1_path,$gwhs_T1_path,1,4"; # 1.6 is different
-#  # my $metric1 = "$gcurrent_T2W_path,$gwhs_T2W_path,0.8,4";
-
+  my $affine_iter="3000x3000x3000x3000";
+  if ( defined($test_mode)) {
+      if( $test_mode == 1 ) {
+	  $affine_iter="1x0x0x0";
+      }
+  }
   my $other_options ="";
-  $other_options = "--number-of-affine-iterations 3000x3000x3000x3000 --MI-option 32x16000 --use-Histogram-Matching";
-
-    if (defined $test_mode) {
-	if ($test_mode == 1) {
-	    $other_options = "--number-of-affine-iterations 1x0x0x0 --MI-option 32x16000 --use-Histogram-Matching";
-	}
-    }
-
+  $other_options = "--number-of-affine-iterations $affine_iter --MI-option 32x16000 --use-Histogram-Matching";
    ###my $skull_mask   = $Hf->get_value('skull_norm_mask_path');  #### but we don't want to use this current mask for -x
-
   my $canon_image_dir    = $Hf->get_value('dir-atlas-images');
   my $ref_skull_mask   = "$canon_image_dir/ref_mask.nii"; # a canonical reference mask
   if (! -e $ref_skull_mask) {
@@ -268,44 +275,26 @@ sub create_multi_channel_diff_syn_transform {
   }
 
   my $my_options ="";
-  $my_options= "-i 3000x3000x3000x0 -t SyN[$syn_setting] -r Gauss[3,0] --continue-affine true -a $affine_xform -x $ref_skull_mask --affine-gradient-descent-option 0.8x0.5x0.0001x0.0001";
-  $my_options = "-i 3000x3000x3000x3000 -t SyN[$syn_setting] -r Gauss[1,0.5] --continue-affine true -a $affine_xform -x $ref_skull_mask --affine-gradient-descent-option 0.2x0.5x0.0001x0.0001";
-  $my_options = "-i 3000x3000x3000x0 -t SyN[$syn_setting] -r Gauss[1,0.05] --continue-affine true -a $affine_xform -x $ref_skull_mask --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
-  $my_options = "-i 3000x3000x3000x0 -t SyN[$syn_setting] -r Gauss[1,0.05] --continue-affine true -a $affine_xform --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
-
-
-  if (defined $test_mode) {
-      if ($test_mode == 1) {
-	  $my_options = "-i 1x0x0x0 -t SyN[$syn_setting] -r Gauss[1,0.05] --continue-affine true -a $affine_xform --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
+  my $diffsyn_iter="3000x3000x3000x3000";
+  if ( defined($test_mode)) {
+      if( $test_mode == 1 ) {
+	  $diffsyn_iter="1x0x0x0";
       }
   }
-
+ $my_options = "-i $diffsyn_iter -t SyN[$syn_setting] -r Gauss[1,0.05] --continue-affine true -a $affine_xform --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
+  
   #/////// define ants transform command including all options ///////
-#  THIS IS CONTROLED ELSEWHRE NOW< SET THE ANTSDIFFSyNMETRIC VALUE at the start of main_seg_pipe_mc.pl
-#   ##for MI
-#   # my $cmd = "$ants_app_dir/ants 3 -m MI[$metric0] -m MI[$metric1] -o $result_transform_path_base $other_options $my_options";
-#   ##for PR
-#   #my $cmd = "$ants_app_dir/ants 3 -m PR[$metric0] -m PR[$metric1] -o $result_transform_path_base $other_options $my_options";
-
-#   ##for CC
-#    my $cmd = "$ants_app_dir/ants 3 -m CC[$metric0] -m CC[$metric1] -o $result_transform_path_base $other_options $my_options";
-
-
-   my $cmd = "$ants_app_dir/ants 3 $metrics -o $result_transform_path_base $other_options $my_options";
-
+  my $cmd = "$ants_app_dir/ants 3 $metrics -o $result_transform_path_base $other_options $my_options";
   if ($DEBUG_GO) { 
-  if (! execute($ggo, "create affine diff syn transform for labels 3/2012\n\n\n", $cmd) ) {
-    error_out("$PM create_diff_syn_transform: could not make transform: $cmd\n");
-  }
+      if (! execute($ggo, "create affine diff syn transform for labels 3/2012\n\n\n", $cmd) ) {
+	  error_out("$PM create_diff_syn_transform: could not make transform: $cmd\n");
+      }
   } 
-
   my $transform_path = "$result_transform_path_base\Affine.txt"; # one of result files
-
   if (!-e $transform_path && $ggo) {
     error_out("$PM create_diff_syn_transform: did not find result xform: $transform_path");
   }
   print "** $PM create_diff_syn_transform created $transform_path, etc\n";
-
   my $affine_xform_base         = $result_transform_path_base . "Affine";
   my $diff_syn_xform_base         = $result_transform_path_base . "Warp";
   my $diff_syn_inverse_xform_base = $result_transform_path_base . "InverseWarp";

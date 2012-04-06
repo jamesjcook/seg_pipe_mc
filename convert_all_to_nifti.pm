@@ -16,29 +16,31 @@ sub convert_all_to_nifti {
 # ------------------
 # convert the source image volumes used in this SOP to nifti format (.nii)
 # could use image name (suffix) to figure out datatype
-  my ($go, $flip_y, $flip_z, $Hf_out)  = @_;
+  my ($go, $Hf_out)  = @_;
+  my $flip_y=$Hf_out->get_value('flip_y');
+  my $flip_z=$Hf_out->get_value('flip_z');
   # dimensions are for the SOP acquisition. 
   my $nii_raw_data_type_code = 4; # civm .raw  (short - big endian)
   my $nii_i32_data_type_code = 8; # .i32 output of t2w image set creator 
 
   my @channel_array=split(',',$Hf_out->get_value('runno_ch_commalist'));
-  my @runno_array=split(',',$Hf_out->get_value('runno_commalist'));
 
 
 # -- open, read headfile belonging to  each runno for image params
   my @cmd_list;
   my $nii_ch_id;
+  print "Convert All to Nifti\n";
   for my $ch_id (@channel_array) {
-      print "looking up channel $ch_id\n";
+      print "\tLooking up channel $ch_id \n";
       my $runno = $Hf_out->get_value("$ch_id\-runno");
       my $runno_dir = $Hf_out->get_value("$ch_id\-path");
       if (! -d $runno_dir) { error_out ("convert_all_to_nifti: no source dir! $runno_dir"); }
       if ( $ch_id =~ m/(T1)|(T2W)|(T2star)/ ) {
-	  if ($ch_id == 'T2W' ) {
+	  if ($ch_id eq 'T2W' ) {
 	      print ("convert_all_to_nifti: ASSUMING YOUR T2W DATA is 16 bit!!!!!! IF YOU USED the NEW fic program this is OK! If you have older MEFIC processed data go to convert_all_to_nifti and change $nii_raw_data_type_code to $nii_i32_data_type_code (switch lines 53 and 55! \n"); 
 	  }
 	  my $input_headfile  = $runno_dir . "/" . "$runno.headfile";
-	  print "Opening input data headfile: $input_headfile\n";
+	  print "\tOpening input data headfile: $input_headfile\n";
 	  my $runno_Hf = new Headfile ('ro', $input_headfile);
 	  if (! $runno_Hf->check)         {error_out("Problem opening input runno headfile; $input_headfile");}
 	  if (! $runno_Hf->read_headfile) {error_out("Could not read input runno headfile: $input_headfile");}
@@ -94,32 +96,6 @@ sub convert_all_to_nifti {
   if($#cmd_list>=0) {#_indep_forks
       execute($go, "copying dti derrived to work", @cmd_list) or error_out("failed to move nii input files to work dir");
   }
-
-#   # for fic the result images are .raw
-#   my $T2W_runno = $Hf_out->get_value('T2W_runno');;
-#   my $input_headfile  = $src_dir . "/". $T2W_runno . "/" . "$T2W_runno.headfile";
-#   print "Opening input data headfile: $input_headfile\n";
-#   my $T2W_Hf = new Headfile ('ro', $input_headfile);
-#   if (! $T2W_Hf->check)         {error_out("Problem opening input runno headfile; $input_headfile");}
-#   if (! $T2W_Hf->read_headfile) {error_out("Could not read input runno headfile: $input_headfile");}
-#   my $input_specid = $T2W_Hf->get_value ("U_specid");
-#   log_info( "  Specimen id read from T2W input scan $T2W_runno headfile: $input_specid\n");
-#   $Hf_out->set_value('specid_T2W'  , $input_specid);
-#    #for old MEFIC processed images
-#   #convert_to_nifti($go, "T2W", $nii_i32_data_type_code, $flip_y, $flip_z, $Hf_out, $T2W_Hf); # .i32 
-#   #for newer FIC processed images
-#   convert_to_nifti($go, "T2W", $nii_raw_data_type_code, $flip_y, $flip_z, $Hf_out, $T2W_Hf); # .i32 
-
-#   my $T2star_runno = $Hf_out->get_value('T2star_runno');
-#   my $input_headfile  = $src_dir . "/". $T2star_runno . "/" . "$T2star_runno.headfile";
-#   print "Opening input data headfile: $input_headfile\n";
-#   my $T2star_Hf = new Headfile ('ro', $input_headfile);
-#   if (! $T2star_Hf->check)         {error_out("Problem opening input runno headfile; $input_headfile");}
-#   if (! $T2star_Hf->read_headfile) {error_out("Could not read input runno headfile: $input_headfile");}
-#   my $input_specid = $T2star_Hf->get_value ("U_specid");
-#   log_info ("  Specimen id read from T2star input scan $T2star_runno headfile: $input_specid\n");
-#   $Hf_out->set_value('specid_T2star'  , $input_specid);
-#   convert_to_nifti($go, "T2star", $nii_raw_data_type_code, $flip_y, $flip_z, $Hf_out, $T2star_Hf);  # .raw
 
 }
 

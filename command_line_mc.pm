@@ -14,7 +14,7 @@
 #                   based on radish pipeline
 
 # be sure to change version:
-my $VERSION = "11/1/21";
+my $VERSION = "12/04/02";
 
 #use File::Path;
 use strict;
@@ -24,44 +24,13 @@ use Getopt::Std;
 use seg_pipe; # pipe info variable definitions
 use label_brain_pipe; # test_mode variable definiton
 # the use vars line pulls variables deffinitons from any begin block in any module included. 
-use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT $test_mode);
+use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT $test_mode );
 
 
 my $NREQUIRED_ARGS = 3;
 my $MAX_ARGS = 5;
-my $debug_val = 5;
+my $debug_val = 10;
 
-# ------------------
-sub usage_message_mc_hardcodechannels {
-# ------------------
-# $PIPELINE_VERSION, $PIPELINE_NAME, $PIPELINE_DESC
-  my ($msg) = @_;
-  print STDERR "$msg\n";
-  print STDERR "$PIPELINE_NAME
-  $PIPELINE_DESC
-usage:
-  seg_pipe \<options\> runno_T1  runno_T2W  runno_T2star  subproj_inputs  subproj_result
-    required args:
-     runno_T1_set     : runno of the input T1 image set (must be available in the archive). 
-     runno_T2W_set    : runno of the input T2W image set.
-     runno_T2star_set : runno of the input T2star image set. 
-     subproj_inputs   : the subproject the input runnos were collected for (and archived under). 
-     subproj_result   : the subproject associated with and for storing (image, label) results of this program. 
-   options:
-     -e         : if used, the runnos will not be copied from the archive (they must be present).
-     -y         : if used, input images will be flipped in y before use
-     -z         : if used, input images will be flipped in z before use
-     -s  suffix : optional suffix on default result runno (doc test params?). Must be ok for filename embed. 
-     -l  dir    : change canonical labels directory from default
-     -i  dir    : change canonical images directory from default
-     -b do_bit_mask : default: 11111 to do all 5 steps; 01111 to skip first step, etc. Steps: nifti, register, strip, whs, label.
-                      Skipping is only from gross testing of commands created and not guaranteed to produce results.
-
-version: $PIPELINE_VERSION 
-
-"; 
-  exit (! $GOODEXIT);
-}
 # ------------------
 sub usage_message_mc {
 # ------------------
@@ -79,16 +48,20 @@ usage:
      subproj_inputs     : source subprojcet, the subproject the input runnos were collected for (and archived under). 
      subproj_result     : destination subproject, the subproject associated with and for storing (image, label) results of this program. 
    options:
-     -c             : Comma list of channels. The default is T1,T2W,T2star. Suppored channels T1,T2W,T2star,adc,dwi,e1,fa
+     -q             : Channel queue. A coma separated list of channels. The default is T1,T2W,T2star. Suppored channels T1,T2W,T2star,adc,dwi,e1,fa
      -e             : if used, the runnos will not be copied from the archive (they must be present).
+     -c             : if used, n4 coil bias will be applied to all input images 
+                      NOTE: must be set for the bit mask value to have meaning. 
+     -n  type       : if used, noise reduction on, must specify type ex -n SUSAN, OR -n Bilateral, or -n ANTS, 
+                      NOTE: must be set for the bit mask value to have meaning. (dont forget the bit-mask changes)
      -y             : if used, input images will be flipped in y before use
      -z             : if used, input images will be flipped in z before use
      -s  suffix     : optional suffix on default result runno (doc test params?). Must be ok for filename embed. 
-     -l  dir        : change canonical labels directory from default, directory must contain <atlas_id>_<contrast>.nii files
-     -a  atlas_id   : id tag for custom atlas, ONLY USED with -i option otherwise ignored, specifys the atlas_id part of the filename, 
-                      whs for whs atlas, otherwise defautls to \"atlas\"
-     -i  dir        : change canonical images directory from default, directory must contain <atlas_id>_<contrast>.nii files
-     -b do_bit_mask : default: 11111 to do all 5 steps; 01111 to skip first step, etc. Steps: nifti, register, strip, atlas-reg, label.
+     -l  dir        : change canonical labels directory from default, directory must contain <atlas_id>_labels.nii files
+     -a  atlas_id   : id tag for custom atlas, ONLY USED with -i option otherwise ignored, specifies the atlas_id part of the 
+filename, \"whs\" for waxholmspace atlas, otherwise defautls to \"atlas\"
+     -i  dir        : change canonical images directory from default, directory must contain <atlas_id>_<channel>.nii files
+     -b do_bit_mask : default: 1111111 to do all 6 steps; 011111 to skip first step, etc. Steps: nifti,noise, bias, register, strip, atlas-reg, label, volumecalc.
                       Skipping is only from gross testing of commands created and not guaranteed to produce results.
      -t             : test mode, cuts all iterations for ants to 1x0x0x0, really fun with bit mask for rapid code testing. 
                       eg, this option is NOT FOR REGULAR USERS. 
@@ -100,38 +73,38 @@ version: $PIPELINE_VERSION
 }
 
 sub command_line_mc {
-# ex call 
-#my ($runno_t1_set, $runno_t2w_set, $runno_t2star_set, 
-#    $subproject_source_runnos, $subproject_segmentation_result, 
-#    $flip_y, $flip_z, $pull_source_images, $extra_runno_suffix, $do_bit_mask, 
-#    $canon_labels_dir, $canon_images_dir) 
-#       = command_line(@ARGV);
-
-  # exit with usage message (from your main) if problem detected
-  ####my (@ARGV) = @_;
-
   if ($#ARGV+1 == 0) { usage_message_mc("");}
-
   print "unprocessed args: @ARGV\n" if ($debug_val >=35);;
   my %options = ();
-  if (! getopts('aoes:b:yztc:i:l:', \%options)) {
+  if (! getopts('ab:cei:l:n:oq:s:tyz', \%options)) {
     print "Problem with command line options.\n";
     usage_message_mc("problem with getopts");
   } 
   #print "$#ARGV+1 vs $NREQUIRED_ARGS\n";
   #print "processed: @ARGV\n";
-  if ($#ARGV+1 < $NREQUIRED_ARGS) { usage_message_mc("Too few arguments on command line"); }
-  if ($#ARGV+1 > $MAX_ARGS) { usage_message_mc("Too many arguments on command line"); }
+  if ($#ARGV+1 < $NREQUIRED_ARGS) { 
+      my $argoutstring='';
+      for my $arg (@ARGV) {
+	  $argoutstring="${argoutstring}\n\t$arg";
+      }
+      usage_message_mc("Too few arguments($#ARGV+1) on command line $argoutstring"); 
+  }
+  if ($#ARGV+1 > $MAX_ARGS) { 
+      my $argoutstring='';
+      for my $arg (@ARGV) {
+	  $argoutstring="${argoutstring}\n\t$arg";
+      }
+      usage_message_mc("Too many arguments($#ARGV+1) on command line $argoutstring"); 
+  }
 
   # -- handle required params
   my $cmd_line = "";
   foreach my $a (@ARGV) {  # save the cmd line for annotation
     my $cmd_line = $cmd_line . " " . $a;
   }
-#  my @arg_list = ();
   my %arg_hash ;
   my $projlist='';
-  my $runnolist='';  # later it might be nice to set up the runno list to optionally grab a contrast from the runno, like <contrast_id>CIVMRUNNO 
+  my $runnolist='';  # later it might be nice to set up the runno list to optionally grab a channel from the runno, like <channel_id>CIVMRUNNO 
   if ($#ARGV < 0) { usage_message_mc("Missing required argument on command line"); }
   my $projdest=pop @ARGV;
   if ($#ARGV < 0) { usage_message_mc("Missing required argument on command line"); }
@@ -144,7 +117,6 @@ sub command_line_mc {
 
   $projlist= $projsource . ',' . $projdest ;
   print "$projlist : projin,projout\n" if ($debug_val>=45);
-#  unshift @arg_list,$projlist; #prepend projlist
   $arg_hash{projlist}=$projlist;
   
   if ($#ARGV < 0) { usage_message_mc("Missing required argument on command line"); }
@@ -155,38 +127,6 @@ sub command_line_mc {
   #  -- handle cmd line options...
   ## single letter opts
   my @singleopts = (); 
-#  my $test_mode = 0; # this is world global, so thisi s not appropriate
-  if (defined $options{t}) { #-t   testmode
-      $test_mode = 1;
-      push @singleopts,'t';
-      print STDERR " TESTMODE enabled, will do very fast(incomplete) ANTS calls! (-t)\n" if ($debug_val>=10);
-#      $debug_val=45;
-  }
-  print "testmode:$test_mode\n" if ($debug_val>=45); 
-  
-  my $flip_y = 0;
-  if (defined $options{y}) {  # -y
-     $flip_y = 1;
-     push @singleopts,'y';
-#     $cmd_line =  "-y " . $cmd_line;
-     print STDERR "  Flipping input images in y. (-y)\n" if ($debug_val>=10);
-  } else {
-     $flip_y = 0;
-     print STDERR "  Not flipping input images in y.\n" if ($debug_val>=10);
-  }
-  $arg_hash{flip_y}=$flip_y;
-
-  my $flip_z ;
-  if (defined $options{z}) {  # -z
-     $flip_z = 1;
-      push @singleopts,'z';
-#     $cmd_line =  "-z " . $cmd_line;
-     print STDERR "  Flipping input images in z. (-z)\n" if ($debug_val>=10);
-  } else {
-     $flip_z = 0;
-     print STDERR "  Not flipping input images in z.\n" if ($debug_val>=10);
-  }
-  $arg_hash{flip_z}=$flip_z;
   
   my $data_pull ;
   if (defined $options{e}) {  # -e
@@ -200,11 +140,52 @@ sub command_line_mc {
   }
   $arg_hash{data_pull}=$data_pull;
 
+
+  my $coil_bias;
+  if (defined $options{c}) {  # -c
+     $coil_bias = 1;
+     push @singleopts,'c';
+     print STDERR "  Coil bias will be applied prior to registration. (-c)\n";
+  } else {
+     $coil_bias = 0;
+#     print STDERR "  Coil bias not selected.\n";
+  }
+  $arg_hash{coil_bias}=$coil_bias;
+
+  if (defined $options{t}) { #-t   testmode
+      $test_mode = 1;
+      push @singleopts,'t';
+      print STDERR "  TESTMODE enabled, will do very fast(incomplete) ANTS calls! (-t)\n" if ($debug_val>=10);
+  }
+  print "testmode:$test_mode\n" if ($debug_val>=45); 
+  
+  my $flip_y = 0;
+  if (defined $options{y}) {  # -y
+     $flip_y = 1;
+     push @singleopts,'y';
+     print STDERR "  Flipping input images in y. (-y)\n" if ($debug_val>=10);
+  } else {
+     $flip_y = 0;
+     print STDERR "  Not flipping input images in y.\n" if ($debug_val>=10);
+  }
+  $arg_hash{flip_y}=$flip_y;
+
+  my $flip_z ;
+  if (defined $options{z}) {  # -z
+     $flip_z = 1;
+      push @singleopts,'z';
+     print STDERR "  Flipping input images in z. (-z)\n" if ($debug_val>=10);
+  } else {
+     $flip_z = 0;
+     print STDERR "  Not flipping input images in z.\n" if ($debug_val>=10);
+  }
+  $arg_hash{flip_z}=$flip_z;
+  
   ##opts with arguments
   my $channel_order='T1,T2W,T2star';
-  if (defined $options{c}) {  # -c 
-      $channel_order = $options{c};
-      $cmd_line = "-c $channel_order " . $cmd_line;
+  if (defined $options{c}) {  # -q 
+      $channel_order = $options{q};
+      $cmd_line = "-q $channel_order " . $cmd_line;
   } else { 
       print STDERR "  Using default channel order $channel_order\n" if ($debug_val>=10);
   }
@@ -218,9 +199,25 @@ sub command_line_mc {
   }
   $arg_hash{extra_runno_suffix}=$extra_runno_suffix;
 
-  my $bit_mask = "11111";
+
+  my $noise_reduction;
+  if (defined $options{n}) {  # -n
+     $noise_reduction = $options{n};
+     $cmd_line = " -n $noise_reduction " . $cmd_line;
+     print STDERR "  Noise reduction using the $noise_reduction algorithm will be applied prior to registration. (-n)\n";
+  }
+  else {
+     $noise_reduction = "--NONE";
+#     print STDERR "  Noise reduction not selected.\n";
+  }
+  $arg_hash{noise_reduction}=$noise_reduction;
+
+  my $bit_mask = "1111111";
   if (defined $options{b}) {  # -b
      $bit_mask = $options{b};
+     while( length("$bit_mask")<7){ 
+	 $bit_mask="0".$bit_mask;
+     }
      $cmd_line = "-b $bit_mask " . $cmd_line;
      print STDERR "  go bitmask: $bit_mask (set with -b)\n" if ($debug_val>=10);
   }
@@ -247,22 +244,9 @@ sub command_line_mc {
   $arg_hash{atlas_id}=$atlas_id;
   $cmd_line = "-" . join('',@singleopts) . " " . $cmd_line;
 
-
-  if (0) { # example with options....
-      my $use_gui_paramfile_boolean;
-      if (defined $options{p}) {  # -p
-	  my $radish_option_string .=  "-p $options{p} ";
-	  my $gui_paramfile = $options{p};
-	  $use_gui_paramfile_boolean = 1;
-      }
-      else {
-	  $use_gui_paramfile_boolean = 0;
-      }
-  }
-  
-#   for my $k (keys %arg_hash) {
-#       print "$k: $arg_hash{$k}\n";
-#   }
+   for my $k (keys %arg_hash) {
+       print "$k: $arg_hash{$k}\n" if ($debug_val >=35);
+   }
   $arg_hash{cmd_line}=$cmd_line;
   return (\%arg_hash); # makes sure to return a ref, this makes live easier.
 }

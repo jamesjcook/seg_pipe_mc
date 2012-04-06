@@ -5,6 +5,7 @@
 # in an archive ready dirctory.
 # 
 # CHANGE LOG
+# 2012/04/02 james cook, started adding coilbias correction to help support in-vivo scans
 # 2012/03/28 james cook, did pile of modifications for using arbitrary atlas and channels
 #            have also modified the functions this depends on, work in progress.
 # 2010/11/02 slg add flip_z, nifti conversion knows about voxel size
@@ -22,13 +23,20 @@ my $PM = "label_brain_pipe.pm";
 use strict;
 use Env qw(PIPELINE_SCRIPT_DIR);
 require Headfile;
-require skull_strip_all;
-require register_all_to_channel1;
-require create_labels;
-require convert_all_to_nifti;
-require registration;
 require image_math;
+require registration;
+
+require convert_all_to_nifti;
+require apply_coil_bias_to_all;
+require apply_noise_reduction_to_all;
+require register_all_to_channel1;
+require skull_strip_all;
 require register_all_to_atlas;
+require create_labels;
+#require calculate_volumes;
+
+my $debug_val = 35;
+
 
 # fancy begin block and use vars to define a world global variable, available to any module used at the same time as this one
 BEGIN {
@@ -37,35 +45,38 @@ BEGIN {
 #    @label_brain_pipe::Export = qw();
     @label_brain_pipe::EXPORT_OK = qw($test_mode);
 }
-use vars qw($test_mode);
+#use vars qw($test_mode); # we dont even use this here, only used in the registration steps
 #use lib "$PIPELINE_SCRIPT_DIR/utility_pms";
 #require pipeline_utilities;
 
 # ------------------
 sub label_brain_pipe {
 # ------------------
-  my ($do_bits, $flip_y, $flip_z, $Hf_out) = @_;
+# $flip_y, $flip_z,
+  my ($do_bits, $Hf_out) = @_; # flip_y and flipy_z should be put in the headfile and pulled ou there to match form with the other functions
   log_info ("$PM name: $NAME");
   log_info ("$PM desc: $DESC");
   log_info ("$PM version: $VERSION");
-
-  my ($nifti, $register, $strip, $atlas, $label) =  split('', $do_bits);
-
-  log_info ("pipeline step do bits: nifti:$nifti, register:$register, strip:$strip, atlasreg:$atlas, label:$label\n");
-
-  convert_all_to_nifti($nifti, $flip_y, $flip_z, $Hf_out); 
-
-  #register_all_to_T1  ($register, $Hf_out);
-  register_all_to_channel1  ($register, $Hf_out);
-
+  my ($nifti, $noise, $bias, $register, $strip, $atlas, $label, $volumes) =  split('', $do_bits);
+  log_info ("pipeline step do bits: nifti:$nifti, noise:$noise, bias:$bias, register:$register, strip:$strip, atlasreg:$atlas, label:$label\n");
+  convert_all_to_nifti($nifti, $Hf_out); 
+  if ($Hf_out->get_value("noise_reduction") eq '--NONE' ) {
+      print("$PM Not noise correcting\n") if ($debug_val>=35);
+  } else {
+      apply_noise_reduction_to_all($noise,$Hf_out);
+  }
+  sleep(15);
+  if ($Hf_out->get_value("coil_bias") == 1 ) {
+      apply_coil_bias_to_all($bias, $Hf_out); 
+  }
+  register_all_to_channel1($register, $Hf_out);
   skull_strip_all($strip, $Hf_out);
-
   register_all_to_atlas($atlas, $Hf_out);
-
   create_labels($label, $Hf_out);
-
-  #save_favorite_intermediates ($atlas, $Hf_out);
+#  calculate_volumes($volumes, $Hf_out);
   save_favorite_intermediates (1, $Hf_out);
+  return;
+
 }
 
 # ------------------

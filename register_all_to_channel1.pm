@@ -12,12 +12,13 @@
 #
 
 
+
 my $PM = "Register_all_to_channel1.pm";
 my $VERSION = "$PM 2012/03/27";
 my $NAME = "Original data set rigid registration ABB Method";
 my $DESC = "ants";
 my $ggo = 1;
-my $debug_val=25;
+my $debug_val=5;
 use strict;
 #use label_brain_pipe;
 #use vars qw($test_mode);
@@ -33,28 +34,20 @@ sub register_all_to_channel1 {
   log_info ("$PM version: $VERSION");
 
   my @channel_array=split(',',$Hf->get_value('runno_ch_commalist'));
-  
-  for my $ch_id (@channel_array[1,$#channel_array]) {
-      print ("\n\n\t$PM now working on ch_id:$ch_id\n\n\n") if ($debug_val>=35);
-      register_rigid_to_channel1("${ch_id}-nii-path", $Hf);
+  if ($#channel_array>=1) {
+      for my $ch_id (@channel_array[1,$#channel_array]) {
+	  print ("\n\n\t$PM now working on ch_id:$ch_id\n\n\n") if ($debug_val>=35);
+	  register_rigid_to_channel1("${ch_id}-nii-path", $Hf);
+      }
   }
-#  register_rigid_to_channel1('T2star_nii_path', $Hf);
-#  register_rigid_to_channel1('T2W_nii_path'   , $Hf);
-
-
-
-
- 
-
   # result ids in headfile: T2star_reg2_T1_path, T2W_reg2_T1_path, T1_nii_path
 }
 
 # ------------------
 sub register_rigid_to_channel1 {
 # ------------------
-  my ($to_deform_path_id, $Hf) = @_;
-
   # register to channel1:
+  my ($to_deform_path_id, $Hf) = @_;
   my @channel_array=split(',',$Hf->get_value('runno_ch_commalist'));
   my $channel1=${channel_array[0]};
   my $warp_domain_path  = $Hf->get_value ("${channel1}-nii-path");
@@ -73,9 +66,6 @@ sub register_rigid_to_channel1 {
   my $result_transform_path_base = "${dot_less_deform_path}_2_${channel1}_transform_";
 
   # -- create transform command
-
-
-
   my $xform_path = 
     create_transform ($ggo, 'rigid1', $to_deform_path, $warp_domain_path, $result_transform_path_base, $ants_app_dir); 
   print "** Rigid transform created for $to_deform_path_id: $xform_path\n";

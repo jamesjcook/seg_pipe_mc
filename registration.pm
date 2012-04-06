@@ -31,15 +31,20 @@ sub create_transform {
 # --- later in the pdf they show this example: where A is aka the "template.nii", so as above "B is transformed to A"?
 #    ANTS 3 -m PR[template.nii.gz,subject.nii.gz,1,2] -i 10x50x50x20 -o subjectmap.nii -t SyN[0.25] -r Gauss[3,0] 
 # For the T1 call, -v output calls A fixed and B moving.  
-
-    #  --- is this an inverse transform?  -i 0 ?
-    my $opts1 = "-i 0 --use-Histogram-Matching --rigid-affine true --MI-option 32x8000 -r Gauss[3,0.5]";
-    my $opts2 = "--number-of-affine-iterations 3000x3000x3000x3000 --affine-gradient-descent-option 0.8x0.5x1.e-4x1.e-4 -v";  
-    if (defined $test_mode) {
-	if ($test_mode == 1) {
-	    $opts2 = "--number-of-affine-iterations 1x0x0x0 --affine-gradient-descent-option 0.8x0.5x1.e-4x1.e-4 -v";  
-	}
-    }
+      my $affine_iter="3000x3000x3000x3000";
+      if (defined $test_mode) {
+	  if ($test_mode==1) {
+	      $affine_iter=1x0x0x0;
+	  }
+      }
+      #  --- is this an inverse transform?  -i 0 ?
+      my $opts1 = "-i 0 --use-Histogram-Matching --rigid-affine true --MI-option 32x8000 -r Gauss[3,0.5]";
+      my $opts2 = "--number-of-affine-iterations $affine_iter --affine-gradient-descent-option 0.8x0.5x1.e-4x1.e-4 -v";  
+#     if (defined $test_mode) {
+# 	if ($test_mode == 1) {
+# 	    $opts2 = "--number-of-affine-iterations 1x0x0x0 --affine-gradient-descent-option 0.8x0.5x1.e-4x1.e-4 -v";  
+# 	}
+#     }
     #$cmd = "$ants_app_dir/ANTS 3 -m CC[$A_path,$B_path,1,4] $opts1 -o $result_transform_path_base $opts2"; #option - but time consuming
     $cmd = "$ants_app_dir/ANTS 3 -m MI[$A_path,$B_path,1,32] $opts1 -o $result_transform_path_base $opts2";
 
