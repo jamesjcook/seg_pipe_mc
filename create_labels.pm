@@ -14,12 +14,12 @@
 
 
 
-my $VERSION = "2012/03/28";
+my $VERSION = "2012/04/09";
 my $NAME = "Alex Badea brain label creation Method";
 my $DESC = "matlab and ants with ref skull mask (v2)";
 my $PM = "create_labels.pm";
 my $ggo = 1;
-my $PM_stages=5;
+my $PM_stages=4;
 
 use strict;
 use label_brain_pipe;
@@ -52,15 +52,16 @@ sub create_labels {
 
   my $affine_xform  = create_multi_channel_affine_transform ($Hf);
 
-  my ($ds_affine_xform_base, $ds_warp_xform_base, $ds_inverse_warp_xform_base, $ants_transform_prefix) = create_multi_channel_diff_syn_transform ($affine_xform, $SYNSETTING , $Hf); #defines syn_setting as 0.5, we could save this to hf perhaps., or more fun, specify it elsewhere and store in headfile.
+  my ($ds_affine_xform_base, $ds_warp_xform_base, $ds_inverse_warp_xform_base, $ants_transform_prefix) = create_multi_channel_diff_syn_transform ($affine_xform, $SYNSETTING , $Hf); 
+  #syn_setting defined as 0.5, we could save this to hf perhaps, or more fun, specify it elsewhere and store in headfile.
 
-  my $label_path      = warp_canonical_labels($ants_transform_prefix, $Hf);
+#  my $label_path      = warp_canonical_labels($ants_transform_prefix, $Hf); # obsolete funciton does same thing as warp_label_image, and warp_label_image has been updated alot since this was in main use.
 
   #####my $warp_label_path = warp_label_image($ds_affine_xform_base, $ds_warp_xform_base, $Hf);
   my $warp_label_path = warp_label_image($ds_affine_xform_base, $ds_inverse_warp_xform_base, $Hf);
-  warp_canonical_image($ds_affine_xform_base, $ds_inverse_warp_xform_base, $Hf);
+  warp_canonical_image($ds_affine_xform_base, $ds_inverse_warp_xform_base, $Hf); 
  
-  log_info ("Pipeline created result 1: $label_path\n");
+#  log_info ("Pipeline created result 1: $label_path\n"); # ouput of obsolete function, do not use. 
   log_info ("Pipeline created result 2: $warp_label_path\n");
 
 }
@@ -385,17 +386,22 @@ sub create_diff_syn_transform {
 }
 
 # ------------------
-sub warp_canonical_labels {
+sub warp_canonical_labels_OBSOLETE_DONOTENABLE {
 # ------------------
+# applys warp transform in the domain of the atlas used to labels 
+# this function is nearly identical to warp_label_image, 
+# this should be applying forward transforms, 
+# this fuction is obsolete
+# 
   my ($ants_transform_prefix, $Hf) = @_;
-  print("\n\n\t$PM stage 3/$PM_stages \"warp_canonical_labels\" \n\n\n") if ($debug_val >= 35) ;
+  print("\n\n\t$PM stage INACTIVE/$PM_stages \"warp_canonical_labels\" \n\n\n") if ($debug_val >= 35) ;
   # $ants_transform_prefix is the base part of all the xforms made by the prior diff syn step
 
   my $label_dir = $Hf->get_value('dir-atlas-labels');
   my $atlas_id         = $Hf->get_value('reg-target-atlas-id');
   my $to_deform = $label_dir . "/${atlas_id}_labels.nii"; 
   if (! -e $to_deform) {
-    error_out("$PM warp_atlas_image: did not find canonical labels: $to_deform");
+    error_out("$PM warp_atlas_image: did not find ${atlas_id} labels: $to_deform");
   }
   my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
   my $channel1 = ${channel_array[0]};
@@ -405,29 +411,25 @@ sub warp_canonical_labels {
   my $channel1_runno   = $Hf->get_value("${channel1}-runno");
   my $result_path_base = "$result_dir/${channel1}_labels_${channel1_runno}";
   my $result_path = "$result_path_base\.nii";
-  #print ("result path $result_path_base, $T1_runno, $result_dir --------\n");
+  #print ("result path $result_path_base, $channel1_runno, $result_dir --------\n");
 
   my $warp_domain_path = $to_deform;
 
-  #my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN --ANTS-prefix $ants_transform_prefix";
+  # my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path 
+  #-R $warp_domain_path --use-NN --ANTS-prefix $ants_transform_prefix";
   # gz change 1
- # my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN --ANTS-prefix $ants_transform_prefix.gz";
-
- my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN --ANTS-prefix $ants_transform_prefix.gz";
- print("warp_canonical_labeles: $cmd\n");
-if ($DEBUG_GO) {
-  if (! execute($ggo, "warp canonical labels", $cmd) ) {
-    error_out("$PM warp_canonical_labels could not warp: $cmd\n");
-  }
-} 
+  my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path 
+  -R $warp_domain_path --use-NN --ANTS-prefix $ants_transform_prefix.gz";
+# ANTS-prefix is not in current documentation, i'm unsure what its doing. 
+  print("warp_canonical_labeles: $cmd\n");
+  if ($DEBUG_GO) {
+      if (! execute($ggo, "warp canonical labels", $cmd) ) {
+	  error_out("$PM warp_canonical_labels could not warp: $cmd\n");
+      }
+  } 
   if (!-e $result_path) {
-    error_out("$PM warp_canonical_labels: did not find result xform: $result_path");
+      error_out("$PM warp_canonical_labels: did not find result xform: $result_path");
   }
-
-
-
-
-
 
   return ($result_path);
 
@@ -482,47 +484,56 @@ if ($DEBUG_GO) {
 # ------------------
 sub warp_label_image {
 # ------------------
- # my ($affine_xform, $warp_xform, $Hf) = @_;
-  print("\n\n\t$PM stage 4/$PM_stages \"warp_label_image\" \n\n\n") if ($debug_val >= 35) ;
+# applys warp transform in the domain of the atlas used to labels
+# this function is nearly itdentical to warp_canonical_label
+# this should warp from atlas labels to the atlas registered input images. 
+# my ($affine_xform, $warp_xform, $Hf) = @_;
   my ($affine_xform, $inverse_warp_xform, $Hf) = @_;
-  my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
-  my $channel1 = ${channel_array[0]};
-  my $label_dir = $Hf->get_value('dir-atlas-labels');
-  my $to_deform = $label_dir . "/canon_labels_ln.nii"; 
-  if (! -e $to_deform) {
-    error_out("$PM warp_atlas_image: did not find canonical labels: $to_deform");
-  }
+  print("\n\n\t$PM stage 3/$PM_stages \"warp_label_image\" \n\n\n") if ($debug_val >= 35) ;
 
-  my $ants_app_dir = $Hf->get_value('engine-app-ants-dir');
-  my $result_dir = $Hf->get_value('dir-result');
+  my $label_dir        = $Hf->get_value('dir-atlas-labels');
+  my $atlas_id         = $Hf->get_value('reg-target-atlas-id');
+  my $ants_app_dir     = $Hf->get_value('engine-app-ants-dir');
+  my $result_dir       = $Hf->get_value('dir-result');
+  my @channel_array    = split(',',$Hf->get_value('runno_ch_commalist'));
+  my $channel1 = ${channel_array[0]};
+
   my $channel1_runno   = $Hf->get_value("${channel1}-runno");
+
+  my $to_deform = $label_dir . "/${atlas_id}_labels.nii"; 
+  if (! -e $to_deform) {
+    error_out("$PM warp_atlas_image: did not find ${atlas_id} labels: $to_deform");
+  }
   my $result_path_base = "$result_dir/${channel1}_labels_warp_${channel1_runno}";
-  my $result_path = "$result_path_base\.nii";
-  #print ("result path $result_path_base, $T1_runno, $result_dir --------\n");
+  my $result_path      = "$result_path_base\.nii";
+  #print ("result path $result_path_base, $channel1_runno, $result_dir --------\n");
 
   my $warp_domain_path = $to_deform;
  
-  #my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN $warp_xform\.nii.gz $affine_xform\.txt";
+  #my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path 
+  #-R $warp_domain_path --use-NN $warp_xform\.nii.gz $affine_xform\.txt";
+
   my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN  -i $affine_xform\.txt $inverse_warp_xform\.nii.gz";
 
-
-
-
-
+  print("warp_label_image: $cmd\n");
   if (! execute($ggo, "warp_label_image", $cmd) ) {
     error_out("$PM warp_label_image could not warp: $cmd\n");
   }
- 
- if (!-e $result_path) {
-    error_out("$PM warp_canon_labels: did not find result xform: $result_path");
+  if (!-e $result_path) {
+      error_out("$PM warp_label_image: did not find result xform: $result_path");
   }
-
+  
   # in place convert to bytes
   my $cmd_byte = "$ants_app_dir/ImageMath 3 $result_path Byte $result_path";
   if (! execute($ggo, "in place convert label image to Byte", $cmd_byte) ) {
-    error_out("$PM to_byte_label_image could not convert: $cmd_byte\n");
-}
-
+      error_out("$PM to_byte_label_image could not convert: $cmd_byte\n");
+  }
+#$result_dir/${channel1}-${atlas_id}canon_warp2_${channel1}-${channel1_runno}\_reg2_${atlas_id}
+  my ($result_file, $rpath, $rext) = fileparts($result_path);
+#reg2_${atlas}_out_label_name
+  $Hf->set_value("${channel1}-reg2-${atlas_id}-label-file",$result_file);
+  $Hf->set_value("${channel1}-reg2-${atlas_id}-label-path", ${rpath} . ${result_file} . ${rext});
+#  my $result_file_id ="${to_deform_id_prefix}-${result_suffix_id}-file";
   return ($result_path);
 }
 
@@ -530,7 +541,7 @@ sub warp_label_image {
 sub warp_label_image_OLD {
 # ------------------
  # my ($affine_xform, $warp_xform, $Hf) = @_;
- print("in warp_label_image\n\n\n");
+  print("in warp_label_image\n\n\n");
   my ($affine_xform, $inverse_warp_xform, $Hf) = @_;
   my $label_dir = $Hf->get_value('dir-atlas-labels');
   my $to_deform = $label_dir . "/canon_labels_ln.nii"; 
@@ -576,7 +587,7 @@ sub warp_canonical_image {
 # ------------------
 # results are for verification, save to working dir
   my ($affine_xform, $inverse_warp_xform, $Hf) = @_;
-  print("\n\n\t$PM stage 5/$PM_stages \"warp_canonical_image\" \n\n\n") if ($debug_val >= 35) ;
+  print("\n\n\t$PM stage 4/$PM_stages \"warp_canonical_image\" \n\n\n") if ($debug_val >= 35) ;
   my $label_dir = $Hf->get_value('dir-atlas-images');
   my $atlas_id  = $Hf->get_value('reg-target-atlas-id');
   my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));

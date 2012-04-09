@@ -33,9 +33,9 @@ require register_all_to_channel1;
 require skull_strip_all;
 require register_all_to_atlas;
 require create_labels;
-#require calculate_volumes;
+require calculate_volumes;
 
-my $debug_val = 35;
+my $debug_val = 5;
 
 
 # fancy begin block and use vars to define a world global variable, available to any module used at the same time as this one
@@ -58,14 +58,14 @@ sub label_brain_pipe {
   log_info ("$PM desc: $DESC");
   log_info ("$PM version: $VERSION");
   my ($nifti, $noise, $bias, $register, $strip, $atlas, $label, $volumes) =  split('', $do_bits);
-  log_info ("pipeline step do bits: nifti:$nifti, noise:$noise, bias:$bias, register:$register, strip:$strip, atlasreg:$atlas, label:$label\n");
+  log_info ("pipeline step do bits: nifti:$nifti, noise:$noise, bias:$bias, register:$register, strip:$strip, atlasreg:$atlas, label:$label,volumes:$volumes\n");
   convert_all_to_nifti($nifti, $Hf_out); 
   if ($Hf_out->get_value("noise_reduction") eq '--NONE' ) {
       print("$PM Not noise correcting\n") if ($debug_val>=35);
   } else {
       apply_noise_reduction_to_all($noise,$Hf_out);
   }
-  sleep(15);
+#  sleep(15);
   if ($Hf_out->get_value("coil_bias") == 1 ) {
       apply_coil_bias_to_all($bias, $Hf_out); 
   }
@@ -73,7 +73,7 @@ sub label_brain_pipe {
   skull_strip_all($strip, $Hf_out);
   register_all_to_atlas($atlas, $Hf_out);
   create_labels($label, $Hf_out);
-#  calculate_volumes($volumes, $Hf_out);
+  calculate_volumes($volumes, $Hf_out);
   save_favorite_intermediates (1, $Hf_out);
   return;
 

@@ -8,7 +8,7 @@
 
 use strict;
 require convert_to_nifti_util;
-my $debug_val=10;
+my $debug_val = 5;
 
 
 # ------------------

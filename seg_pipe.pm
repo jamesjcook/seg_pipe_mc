@@ -24,7 +24,7 @@ $PIPELINE_DESC = "CIVM MRI mouse brain image segmentation using multiple contras
 $HfResult = "unset";
 $GOODEXIT = 0;
 $BADEXIT  = 1;
-my $debug_val=35;
+my $debug_val = 5;
 my $g_engine_ants_app_dir;
 my $g_engine_matlab_app;
 my $g_engine_fsl_dir;

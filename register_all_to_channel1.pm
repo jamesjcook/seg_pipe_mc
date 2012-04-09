@@ -18,7 +18,7 @@ my $VERSION = "$PM 2012/03/27";
 my $NAME = "Original data set rigid registration ABB Method";
 my $DESC = "ants";
 my $ggo = 1;
-my $debug_val=5;
+my $debug_val = 5;
 use strict;
 #use label_brain_pipe;
 #use vars qw($test_mode);

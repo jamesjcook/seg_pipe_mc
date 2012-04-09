@@ -42,7 +42,7 @@ BEGIN {
 }
 # most of these variables are defined in seg_pipe.pm as they are static, nchannels is defined here
 use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT $nchannels);
-my $debug_val=5;
+my $debug_val = 5;
 
 
 ###
@@ -50,8 +50,8 @@ my $debug_val=5;
 ###
 my $ANTSAFFINEMETRIC = "MI"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by chaning the naem of this in the headfile, and looking up those different variable names in the pipe.
 my $ANTSDIFFSyNMETRIC = "CC"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by chaning the naem of this in the headfile, and looking up those different variable names in the pipe.
-$nchannels = 2; # number of channels to include in metrics, be nice to use all channels, but thats for the future, will have to edit lines containing this to be $#channel_array instead, to use all possible channels. perhaps we should do some kindof either or, another option flag telling the number of specified channels to use for the registration.
-
+#$nchannels = 2; # number of channels to include in metrics, be nice to use all channels, but thats for the future, will have to edit lines containing this to be $#channel_array instead, to use all possible channels. perhaps we should do some kindof either or, another option flag telling the number of specified channels to use for the registration.
+# this has been set up as the -m option, will remain undocumented for now. 
 
 # ---- main ------------
 # pull inputs using the command_line_mc input parser.
@@ -73,7 +73,8 @@ my $pull_source_images = $arghash{data_pull};      # -e
 my $extra_runno_suffix = $arghash{extra_runno_suffix}; # -s 
 my $do_bit_mask = $arghash{bit_mask};              # -b
 my $atlas_labels_dir = $arghash{atlas_labels_dir}; # -l
-my $atlas_id = $arghash{atlas_id};   # -a that a is subject to change
+$nchannels = $arghash{registration_channels};      # -m this is subject to change
+my $atlas_id = $arghash{atlas_id};                 # -a this is subject to change
 my $atlas_images_dir = $arghash{atlas_images_dir}; # -i
 my $cmd_line = $arghash{cmd_line};
 
@@ -95,7 +96,9 @@ if ($extra_runno_suffix eq "--NONE") {
   print "Extra runno suffix info provided = $extra_runno_suffix\n";
   $nominal_runno = $runno_array[0] . $extra_runno_suffix; 
 }
-set_environment($nominal_runno); # opens headfile, log file
+set_environment($nominal_runno); # opens headfile, log file, loads the setting variables from dependency files into the headfile. 
+
+$HfResult->set_value('program_arguments',$cmd_line);
 if ($atlas_labels_dir eq "DEFAULT") { # handle -l option
     $atlas_labels_dir = $HfResult->get_value('dir-whs-labels-default');
 }
@@ -125,7 +128,9 @@ if ($#channel_array<$nchannels-1) { # $# is max_index of 0 indexed array, so we 
 
 	print ("WARNING: changing number of channels to ($#runno_array+1)\n");
 	$nchannels=$#channel_array+1;
-}
+} 
+if ($debug_val>=35)
+{print("Registering using metrics for the frist $nchannels channels.\n") ; sleep(3);}
 
 ###
 # find the ANTS metric weights in opts file
@@ -148,7 +153,7 @@ my $HfAntsmetrics = get_ants_metric_opts();
 # }
 my $transformtype = "affine";
 $err_buffer = ''; #clear buffer to for looking up the metric options in the metric opts file
-print("ANTS metric weighting options");
+print("ANTS metric weighting options\n");
 #for my $ch_id (@channel_array) { 
 for(my $num=0;$num<=$nchannels-1;$num++) { 
     my $ch_id = "CH" . ($num+1) ;
@@ -184,6 +189,7 @@ print
     subproj source: $subproject_source_runnos, 
     subproj result: $subproject_segmentation_result, 
     pull=$pull_source_images, flip_y=$flip_y, flip_z=$flip_z, noise_reduction:$noise_reduction, coil_bias=$coil_bias,
+    registration_channels:$nchannels,
     suffix=$extra_runno_suffix 
     domask=$do_bit_mask
     atlas_labels_dir=$atlas_labels_dir

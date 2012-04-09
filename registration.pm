@@ -60,7 +60,7 @@ sub create_transform {
   if (! execute($go, "create $xform_code transform for $A_file", $cmd) ) {
     error_out("$PM create_transform: could not make transform: $cmd\n");
   }
-  my $transform_path = "$result_transform_path_base\Affine.txt";
+  my $transform_path = "${result_transform_path_base}Affine.txt";
   # suffix mentioned on: http://picsl.upenn.edu/ANTS/ioants.php, and confirmed by what appears!
   # note: don't have any dots . in the middle of your base path, just one at the end: .nii
 

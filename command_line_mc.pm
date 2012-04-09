@@ -29,7 +29,7 @@ use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT 
 
 my $NREQUIRED_ARGS = 3;
 my $MAX_ARGS = 5;
-my $debug_val = 10;
+my $debug_val = 5;
 
 # ------------------
 sub usage_message_mc {
@@ -56,6 +56,7 @@ usage:
                       NOTE: must be set for the bit mask value to have meaning. (dont forget the bit-mask changes)
      -y             : if used, input images will be flipped in y before use
      -z             : if used, input images will be flipped in z before use
+     -m  channels   : if used, will speficiy number of channels to include in registration. 
      -s  suffix     : optional suffix on default result runno (doc test params?). Must be ok for filename embed. 
      -l  dir        : change canonical labels directory from default, directory must contain <atlas_id>_labels.nii files
      -a  atlas_id   : id tag for custom atlas, ONLY USED with -i option otherwise ignored, specifies the atlas_id part of the 
@@ -76,7 +77,7 @@ sub command_line_mc {
   if ($#ARGV+1 == 0) { usage_message_mc("");}
   print "unprocessed args: @ARGV\n" if ($debug_val >=35);;
   my %options = ();
-  if (! getopts('ab:cei:l:n:oq:s:tyz', \%options)) {
+  if (! getopts('ab:cei:l:mn:oq:s:tyz', \%options)) {
     print "Problem with command line options.\n";
     usage_message_mc("problem with getopts");
   } 
@@ -140,7 +141,6 @@ sub command_line_mc {
   }
   $arg_hash{data_pull}=$data_pull;
 
-
   my $coil_bias;
   if (defined $options{c}) {  # -c
      $coil_bias = 1;
@@ -183,7 +183,7 @@ sub command_line_mc {
   
   ##opts with arguments
   my $channel_order='T1,T2W,T2star';
-  if (defined $options{c}) {  # -q 
+  if (defined $options{q}) {  # -q 
       $channel_order = $options{q};
       $cmd_line = "-q $channel_order " . $cmd_line;
   } else { 
@@ -199,6 +199,15 @@ sub command_line_mc {
   }
   $arg_hash{extra_runno_suffix}=$extra_runno_suffix;
 
+  my $registration_channels=2;
+  if (defined $options{m}) {  # m
+     $registration_channels = $options{m};
+     $cmd_line =  " -m $registration_channels " . $cmd_line ;
+     print STDERR "  Registration channels specified, will use up to ${registration_channels} channels. (-m)\n";
+  } else {
+     print STDERR "  Registration channels not specified, using up to 2.\n";
+  }
+  $arg_hash{registration_channels}=$registration_channels;
 
   my $noise_reduction;
   if (defined $options{n}) {  # -n
@@ -212,7 +221,7 @@ sub command_line_mc {
   }
   $arg_hash{noise_reduction}=$noise_reduction;
 
-  my $bit_mask = "1111111";
+  my $bit_mask = "11111111";
   if (defined $options{b}) {  # -b
      $bit_mask = $options{b};
      while( length("$bit_mask")<7){ 

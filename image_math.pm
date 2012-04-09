@@ -10,7 +10,7 @@ my $ggo = 1;
  
 my $PM = "image_math.pm";
 use strict;
-my $debug_val=0;
+my $debug_val = 5;
 
 # ------------------
 sub make_sane_mask {
