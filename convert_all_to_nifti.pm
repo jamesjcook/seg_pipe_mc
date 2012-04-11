@@ -45,7 +45,7 @@ sub convert_all_to_nifti {
 	  if (! $runno_Hf->check)         {error_out("Problem opening input runno headfile; $input_headfile");}
 	  if (! $runno_Hf->read_headfile) {error_out("Could not read input runno headfile: $input_headfile");}
 	  my $input_specid = $runno_Hf->get_value ("U_specid");
-	  my $xdim = $runno_Hf->get_value ("S_xres_img");
+#	  my $xdim = $runno_Hf->get_value ("S_xres_img");
 	  log_info( "  Specimen id read from $ch_id input scan $runno headfile: $input_specid\n");
 	  $Hf_out->set_value("specid_${ch_id}"  , $input_specid);
 

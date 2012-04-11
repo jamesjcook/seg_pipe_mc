@@ -21,7 +21,7 @@
 use strict;
 #require Exporter; 
 use Env qw(PIPELINE_SCRIPT_DIR);
-use lib "$PIPELINE_SCRIPT_DIR/utility_pms"; # look in here for the requirements
+use lib "$PIPELINE_SCRIPT_DIR/pipeline_utilities"; # look in here for the requirements
 # generic incldues
 require Headfile;
 require pipeline_utilities;
