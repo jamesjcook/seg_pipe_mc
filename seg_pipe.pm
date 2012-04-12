@@ -1,4 +1,5 @@
 #!/usr/local/pipeline-link/perl
+# seg_pipe.pm
 # global def for seg pipe, should be different for each seg pipe version, this one is for seg_pipe_mc.
 # contains very specific funcitons, ... practially a class deffinition for the 3 functions, 
 #  set_environment          sets up basic directory's we'll work out of
@@ -18,7 +19,7 @@ BEGIN {
 }
 # this use vars line telsl us which variables we're going to use in this module.
 use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT ); #$test_mode
-$PIPELINE_VERSION = "2012/03/21";
+$PIPELINE_VERSION = "2012/04/12";
 $PIPELINE_NAME = "Multiple contrast Brain Seg Pipeline With hopefully arbitrary channels"; 
 $PIPELINE_DESC = "CIVM MRI mouse brain image segmentation using multiple contrasts";
 $HfResult = "unset";

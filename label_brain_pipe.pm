@@ -59,21 +59,30 @@ sub label_brain_pipe {
   log_info ("$PM version: $VERSION");
   my ($nifti, $noise, $bias, $register, $strip, $atlas, $label, $volumes) =  split('', $do_bits);
   log_info ("pipeline step do bits: nifti:$nifti, noise:$noise, bias:$bias, register:$register, strip:$strip, atlasreg:$atlas, label:$label,volumes:$volumes\n");
-  convert_all_to_nifti($nifti, $Hf_out); 
+#step 1
+  convert_all_to_nifti($nifti, $Hf_out);  
   if ($Hf_out->get_value("noise_reduction") eq '--NONE' ) {
       print("$PM Not noise correcting\n") if ($debug_val>=35);
   } else {
+#step2
       apply_noise_reduction_to_all($noise,$Hf_out);
   }
 #  sleep(15);
   if ($Hf_out->get_value("coil_bias") == 1 ) {
+#step3
       apply_coil_bias_to_all($bias, $Hf_out); 
   }
+#step4
   register_all_to_channel1($register, $Hf_out);
+#step5
   skull_strip_all($strip, $Hf_out);
+#step6
   register_all_to_atlas($atlas, $Hf_out);
+#step7
   create_labels($label, $Hf_out);
+#step8
   calculate_volumes($volumes, $Hf_out);
+#put in results
   save_favorite_intermediates (1, $Hf_out);
   return;
 

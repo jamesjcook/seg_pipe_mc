@@ -1,6 +1,5 @@
 # command_line_mc.pm
-# reads command line options for seg_pipe_mc, should probably be renamed to 
-# reflect that it is specific to the pipe calling it.
+# reads command line options for seg_pipe_mc, 
 # also contains ussage_message for its pipeline
 #
 # 12/03/08 jjc29 modified option vars to make more sence and match once used 
@@ -14,7 +13,7 @@
 #                   based on radish pipeline
 
 # be sure to change version:
-my $VERSION = "12/04/02";
+my $VERSION = "12/04/12";
 
 #use File::Path;
 use strict;
@@ -39,31 +38,54 @@ sub usage_message_mc {
   print STDERR "$msg\n";
   print STDERR "$PIPELINE_NAME
   $PIPELINE_DESC
+INPUT:  civmraw from archive.
+OUTPUT: input images as nifti in atlas space, with 8-bit nifti labels.
+NOTE: For nifti inputs see the example directory in hostnamespace.
 usage:
   seg_pipe \<options\> runno_channel1  [runno_channel2]  [runno_channel3]  subproj_inputs  subproj_result
     required args:
-     runno_channel1_set : runno of the input channel1, default is a T1 image set (all must be available in the archive). 
-     runno_channel2_set : runno of the input channel2, default is a T2W image set. (optional)(all must be available in the archive). 
-     runno_channel3_set : runno of the input channel3, default is a T2star image set. (optional)(all must be available in the archive). 
-     subproj_inputs     : source subprojcet, the subproject the input runnos were collected for (and archived under). 
-     subproj_result     : destination subproject, the subproject associated with and for storing (image, label) results of this program. 
-   options:
-     -q             : Channel queue. A coma separated list of channels. The default is T1,T2W,T2star. Suppored channels T1,T2W,T2star,adc,dwi,e1,fa
-     -e             : if used, the runnos will not be copied from the archive (they must be present).
-     -c             : if used, n4 coil bias will be applied to all input images 
+     runno_channel1_set : runno of the input channel1, default is a T1 image set 
+                          (all must be available in the archive). 
+     runno_channel2_set : runno of the input channel2, default is a T2W image set. (optional)
+                          (all must be available in the archive). 
+     runno_channel3_set : runno of the input channel3, default is a T2star image set. (optional)
+                          (all must be available in the archive). 
+     subproj_inputs     : source subprojcet, subproject the input runnos were archived under.
+     subproj_result     : destination subproject, subproject for the results (image, label) under. 
+   options(all options are optional):
+     -q             : Channel queue. A coma separated list of channels. 
+                      The default is T1,T2W,T2star. Suppored channels T1,T2W,T2star,adc,dwi,e1,fa
+     -e             : Data exists locally, the data will not be copied from the archive.
+     -c             : Coil Bias enable, n4 coil bias will be calculated and applied to all input.
                       NOTE: must be set for the bit mask value to have meaning. 
-     -n  type       : if used, noise reduction on, must specify type ex -n SUSAN, OR -n Bilateral, or -n ANTS, 
-                      NOTE: must be set for the bit mask value to have meaning. (dont forget the bit-mask changes)
-     -y             : if used, input images will be flipped in y before use
-     -z             : if used, input images will be flipped in z before use
-     -m  channels   : if used, will speficiy number of channels to include in registration. 
-     -s  suffix     : optional suffix on default result runno (doc test params?). Must be ok for filename embed. 
-     -l  dir        : change canonical labels directory from default, directory must contain <atlas_id>_labels.nii files
-     -a  atlas_id   : id tag for custom atlas, ONLY USED with -i option otherwise ignored, specifies the atlas_id part of the 
-filename, \"whs\" for waxholmspace atlas, otherwise defautls to \"atlas\"
-     -i  dir        : change canonical images directory from default, directory must contain <atlas_id>_<channel>.nii files
-     -b do_bit_mask : default: 1111111 to do all 6 steps; 011111 to skip first step, etc. Steps: nifti,noise, bias, register, strip, atlas-reg, label, volumecalc.
-                      Skipping is only from gross testing of commands created and not guaranteed to produce results.
+     -n  type       : Noise Correction, must specify type ex -n SUSAN, OR -n Bilateral,
+                      NOTE: must be set for the bit mask value to have meaning. 
+     -y             : Flip input Y, all input images will be flipped in y before use (this happens before niftify).
+     -z             : Flip input Z, all input images will be flipped in z before use (this happens before niftify).
+     -m  channels   : Channels considered for registration, Default 2, if more than this number 
+                      of channels is specified they will not be used for registration, and will
+                      just have the transforms applied. 
+     -s  suffix     : optional suffix for output directory, 
+                      WARNING: letters, numbers or underscore ONLY([a-zA-Z_0-9]). 
+     -l  dir        : Label directory, default is set in setup files. 
+                      Directory must contain <atlas_id>_labels.nii files, use -a (see below).
+     -i  dir        : Registration Target, default is set in setup files. 
+                      Directory must contain <atlas_id>_<channel>.nii files, use -a (see below).
+     -a  atlas_id   : Atlas_id tag for custom atlas, ONLY USED with -i option otherwise ignored.
+                      Specifies the atlas_id part of the filename, \"whs\" for waxholmspace atlas,
+                      otherwise defautls to \"atlas\".
+     -b do_bit_mask : Step skipping, default: 11111111 to do all 8 steps; 01111111 to skip first step, etc. 
+                      MUST ALWAYS USE 8 DIGITS.
+                      Steps: 
+                      \tnifti,    - take civm raw format images and turn them into nifti.
+                      \tnoise,    - noise correction enabled with -n option, ignored if -n not specified
+                      \tbias,     - bias correction enabled with -c option.
+                      \treg_ch1,  - rigid register to first channel
+                      \tstrip,    - skull strip calculation for first channel(applied ot all)
+                      \treg_atlas,- rigid register to atlas
+                      \tlabel,    - diffeomorphic register atlas label to image in atlas space.
+                      \tvolumecalc.- calculate volumes of labels 
+                      Skipping is only for gross testing of commands created and not guaranteed to produce results.
      -t             : test mode, cuts all iterations for ants to 1x0x0x0, really fun with bit mask for rapid code testing. 
                       eg, this option is NOT FOR REGULAR USERS. 
 

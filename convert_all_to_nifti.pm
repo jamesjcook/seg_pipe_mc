@@ -35,7 +35,7 @@ sub convert_all_to_nifti {
       my $runno = $Hf_out->get_value("$ch_id\-runno");
       my $runno_dir = $Hf_out->get_value("$ch_id\-path");
       if (! -d $runno_dir) { error_out ("convert_all_to_nifti: no source dir! $runno_dir"); }
-      if ( $ch_id =~ m/(T1)|(T2W)|(T2star)/ ) {
+      if ( $ch_id =~ m/(T1)|(T2W)|(T2star)/ ) { # should move this to global options, as archivechannels	  
 	  if ($ch_id eq 'T2W' ) {
 	      print ("convert_all_to_nifti: ASSUMING YOUR T2W DATA is 16 bit!!!!!! IF YOU USED the NEW fic program this is OK! If you have older MEFIC processed data go to convert_all_to_nifti and change $nii_raw_data_type_code to $nii_i32_data_type_code (switch lines 53 and 55! \n"); 
 	  }
@@ -50,11 +50,17 @@ sub convert_all_to_nifti {
 	  $Hf_out->set_value("specid_${ch_id}"  , $input_specid);
 
 	  $nii_ch_id=convert_to_nifti_util($go, $ch_id, $nii_raw_data_type_code, $flip_y, $flip_z, $Hf_out, $runno_Hf); # .raw 
-      } elsif ( $ch_id =~ m/(adc)|(dwi)|(e1)|(fa)/){
+      } elsif ( $ch_id =~ m/(adc)|(dwi)|(e1)|(fa)/){  # should move this to global options, dtiresearchchannels
 	  my $input_headfile = $runno_dir . "/" . "tensor${runno}.headfile";
 	  my $runno_Hf = new Headfile ('ro', $input_headfile);
-	  if (! $runno_Hf->check)          {error_out("Problem opening input runno headfile; $input_headfile");}
-	  if (! $runno_Hf->read_headfile)  {error_out("Could not read input runno headfile: $input_headfile");}
+	  if (! $runno_Hf->check)          {
+	      $input_headfile = $runno_dir . "/" . "${runno}.headfile";
+	      $runno_Hf = new Headfile ('ro', $input_headfile);
+	  }
+	  if (! $runno_Hf->check)          { error_out("Problem opening input runno headfile; $input_headfile"); }
+	  if (! $runno_Hf->read_headfile)  {
+	      error_out("Could not read input runno headfile: $input_headfile");
+	  }
 	  my $input_specid = $runno_Hf->get_value ("U_specid");
 	  log_info( "  Specimen id read from $ch_id input scan $runno headfile: $input_specid\n");
 # lines from convert_to_nifti which add to hf_out
