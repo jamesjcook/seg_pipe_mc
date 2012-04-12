@@ -123,6 +123,16 @@ log_info("        canonical images dir = $atlas_images_dir");
 $HfResult->set_value('ANTS-affine-metric',$ANTSAFFINEMETRIC);
 $HfResult->set_value('ANTS-diff-SyN-metric',$ANTSDIFFSyNMETRIC);
 
+
+#make sure nchannels is <= size of runno array
+my @tmparray=();
+if ($#runno_array<$nchannels-1) { 
+    $nchannels=$#channel_array+1; 
+    for (my $run=0;$run<=$#runno_array;$run++) {
+	push @tmparray, $channel_array[$run];
+    }
+    @channel_array=@tmparray;
+} 
 if ($#channel_array<$nchannels-1) { # $# is max_index of 0 indexed array, so we in fact need to look for 1 less than the real number of channels
         log_info("Only found $#channel_array channels. MUST SPECIFY TWO OR THREE CHANNELS.(The third is mostly along for the ride.) Less than 2 channels not currently tested, all registrations based on two channels, ");
 
