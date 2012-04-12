@@ -111,7 +111,7 @@ sub command_line_mc {
   if ($#ARGV+1 == 0) { usage_message_mc("");}
   print "unprocessed args: @ARGV\n" if ($debug_val >=35);;
   my %options = ();
-  if (! getopts('ab:cei:l:mn:oq:s:tyz', \%options)) {
+  if (! getopts('a:b:cei:l:mn:oq:s:tyz', \%options)) {
     print "Problem with command line options.\n";
     usage_message_mc("problem with getopts");
   } 
