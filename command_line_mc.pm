@@ -51,7 +51,9 @@ usage:
      runno_channel3_set : runno of the input channel3, default is a T2star image set. (optional)
                           (all must be available in the archive). 
      subproj_inputs     : source subprojcet, subproject the input runnos were archived under.
+                          ex 00.anything.00  (format is ##.<text>.##  or ([0-9]{2}[.]\w[.][0-9]{2}) )
      subproj_result     : destination subproject, subproject for the results (image, label) under. 
+                          ex 00.anything.00
    options(all options are optional):
      -q             : Channel queue. A coma separated list of channels. 
                       The default is T1,T2W,T2star. Suppored channels T1,T2W,T2star,adc,dwi,e1,fa
@@ -90,6 +92,16 @@ usage:
                       eg, this option is NOT FOR REGULAR USERS. 
 
 version: $PIPELINE_VERSION 
+
+Examples:
+single contrast, with existing data
+\tseg_pipe_mc -e E00001 11.test.01 11.test.01
+dual contrast, with existing data
+\tseg_pipe_mc -e E00001 E00001 11.test.01 11.test.01
+dual contrast, with exsiting nii data
+\tseg_pipe_mc -eb 01111111 E00001 E00002 11.test.01 11.test.01
+dual contrast, with existing data using non standard contrasts.
+\tseg_pipe_mc -eb 01111111 -q T1,dwi E00001 E00002 11.test.01 11.test.01
 
 "; 
   exit (! $GOODEXIT);
