@@ -97,11 +97,16 @@ Examples:
 single contrast, with existing data
 \tseg_pipe_mc -e E00001 11.test.01 11.test.01
 dual contrast, with existing data
-\tseg_pipe_mc -e E00001 E00001 11.test.01 11.test.01
-dual contrast, with exsiting nii data
-\tseg_pipe_mc -eb 01111111 E00001 E00002 11.test.01 11.test.01
+\tseg_pipe_mc -e E00001 E00002 11.test.01 11.test.01
+dual contrast, with exsiting nii data (using test data set up from the install)
+\tseg_pipe_mc -a phant -i /pipe_home/whs_references/phant_images \\
+                       -l /pipe_home/whs_references/phant_labels \\
+                       -eb 01111111 TESTDATA TESTDATA2 11.test.01 11.test.01
 dual contrast, with existing data using non standard contrasts.
-\tseg_pipe_mc -eb 01111111 -q T1,dwi E00001 E00002 11.test.01 11.test.01
+\tseg_pipe_mc -a phant -i /pipe_home/whs_references/phant_images \\
+                       -l /pipe_home/whs_references/phant_labels \\
+                       -q T1,T2 \\
+                       -eb 01111111 TESTDATA TESTDATA2 11.test.01 11.test.01
 
 "; 
   exit (! $GOODEXIT);

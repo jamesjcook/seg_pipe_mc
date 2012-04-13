@@ -34,7 +34,7 @@ sub create_transform {
       my $affine_iter="3000x3000x3000x3000";
       if (defined $test_mode) {
 	  if ($test_mode==1) {
-	      $affine_iter=1x0x0x0;
+	      $affine_iter="1x0x0x0";
 	  }
       }
       #  --- is this an inverse transform?  -i 0 ?
