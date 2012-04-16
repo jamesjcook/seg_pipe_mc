@@ -19,6 +19,7 @@
 #package seg_pipe_mc;
 
 use strict;
+use List::Util qw(min);
 #require Exporter; 
 use Env qw(PIPELINE_SCRIPT_DIR);
 use lib "$PIPELINE_SCRIPT_DIR/pipeline_utilities"; # look in here for the requirements
@@ -42,7 +43,7 @@ BEGIN {
 }
 # most of these variables are defined in seg_pipe.pm as they are static, nchannels is defined here
 use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT $nchannels);
-my $debug_val = 5;
+my $debug_val = 35;
 
 
 ###
@@ -115,7 +116,7 @@ if ($atlas_images_dir eq "DEFAULT") { # handle -i and -a options
     }
 }
 
-$HfResult->set_value('reg-target-atlas-id','whs');
+$HfResult->set_value('reg-target-atlas-id',$atlas_id);
 $HfResult->set_value('dir-atlas-images', $atlas_images_dir);
 if (! -e $atlas_images_dir) { error_out ("unable to find canonical images directory $atlas_images_dir");  } 
 log_info("        canonical images dir = $atlas_images_dir"); 
@@ -123,11 +124,24 @@ log_info("        canonical images dir = $atlas_images_dir");
 $HfResult->set_value('ANTS-affine-metric',$ANTSAFFINEMETRIC);
 $HfResult->set_value('ANTS-diff-SyN-metric',$ANTSDIFFSyNMETRIC);
 
-
-#make sure nchannels is <= size of runno array
+###
+# check channels and runnos and nchannels
+###
 my @tmparray=();
-if ($#runno_array<$nchannels-1) { 
-    $nchannels=$#channel_array+1; 
+# possible error conditions, 
+# size of runno_array < size of channel_array 
+if ( $#runno_array<$#channel_array){
+    print("WARNING: More channels specified than provided, guessing correct number\n"); # if ($debug_val >=35);
+    for (my $run=0;$run<=$#runno_array;$run++) {
+	push @tmparray, $channel_array[$run];
+    }
+    @channel_array=@tmparray;
+}
+#size of runno_array < nchannels
+if ($#runno_array<$nchannels-1 ) { # this maybe should be<= not <
+    print("WARNING: More channels desired for regiistration than provided, guessing correct number\n"); # if ($debug_val >=35);
+    $nchannels=min($#channel_array,$#runno_array)+1; 
+    
     for (my $run=0;$run<=$#runno_array;$run++) {
 	push @tmparray, $channel_array[$run];
     }
