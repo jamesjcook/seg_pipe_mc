@@ -77,11 +77,11 @@ usage:
                       Specifies the atlas_id part of the filename, \"whs\" for waxholmspace atlas,
                       otherwise defautls to \"atlas\".
      -b do_bit_mask : Step skipping, default: 11111111 to do all 8 steps; 01111111 to skip first step, etc. 
-                      MUST ALWAYS USE 8 DIGITS.
+                      MUST ALWAYS USE 8 DIGITS, LESS DIGITS WILL GIVE UNEXPECTED RESULTS!
                       Steps: 
                       \tnifti,    - take civm raw format images and turn them into nifti.
-                      \tnoise,    - noise correction enabled with -n option, ignored if -n not specified
                       \tbias,     - bias correction enabled with -c option.
+                      \tnoise,    - noise correction enabled with -n option, ignored if -n not specified
                       \treg_ch1,  - rigid register to first channel
                       \tstrip,    - skull strip calculation for first channel(applied ot all)
                       \treg_atlas,- rigid register to atlas
@@ -109,7 +109,7 @@ dual contrast, with existing data using non standard contrasts.
                        -eb 01111111 TESTDATA TESTDATA2 11.test.01 11.test.01
 
 "; 
-  exit (! $GOODEXIT);
+  exit ( $BADEXIT );
 }
 
 sub command_line_mc {

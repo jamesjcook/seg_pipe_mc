@@ -51,7 +51,7 @@ my $debug_val = 35;
 ###
 my $ANTSAFFINEMETRIC = "MI"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by chaning the naem of this in the headfile, and looking up those different variable names in the pipe.
 my $ANTSDIFFSyNMETRIC = "CC"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by chaning the naem of this in the headfile, and looking up those different variable names in the pipe.
-#$nchannels = 2; # number of channels to include in metrics, be nice to use all channels, but thats for the future, will have to edit lines containing this to be $#channel_array instead, to use all possible channels. perhaps we should do some kindof either or, another option flag telling the number of specified channels to use for the registration.
+#$nchannels = 2; # number of channels to include in metrics, be nice to use all channels, but thats for the future, will have to edit lines containing this to be $#channel_list instead, to use all possible channels. perhaps we should do some kindof either or, another option flag telling the number of specified channels to use for the registration.
 # this has been set up as the -m option, will remain undocumented for now. 
 
 # ---- main ------------
@@ -63,9 +63,9 @@ my %arghash=%{$arg_hash_ref};
  foreach my $k (keys %arghash) {
      print "$k: $arghash{$k}\n" if ($debug_val >=35);
  }
-my @runno_array                                                 = split(',',$arghash{runnolist});
-my @channel_array                                               = split(',',$arghash{channel_order});
-my ($subproject_source_runnos, $subproject_segmentation_result) = split( ',',$arghash{projlist});
+my @runno_list                                                 = split(',',$arghash{runnolist});
+my @channel_list                                               = split(',',$arghash{channel_order});
+my ($subproject_source, $subproject_result) = split( ',',$arghash{projlist});
 my $flip_y = $arghash{flip_y};                     # -y 
 my $flip_z = $arghash{flip_z};                     # -z
 my $noise_reduction = $arghash{noise_reduction};   # -n
@@ -92,10 +92,10 @@ if ( $coil_bias == 0 ) {
 my $nominal_runno = "xxx"; 
 if ($extra_runno_suffix eq "--NONE") {
 #  $nominal_runno = $runno_channel1_set;  # the "nominal runno" is used to id this segmentation
-  $nominal_runno = $runno_array[0];  # the "nominal runno" is used to id this segmentation
+  $nominal_runno = $runno_list[0];  # the "nominal runno" is used to id this segmentation
 } else {
   print "Extra runno suffix info provided = $extra_runno_suffix\n";
-  $nominal_runno = $runno_array[0] . $extra_runno_suffix; 
+  $nominal_runno = $runno_list[0] . $extra_runno_suffix; 
 }
 set_environment($nominal_runno); # opens headfile, log file, loads the setting variables from dependency files into the headfile. 
 
@@ -129,29 +129,29 @@ $HfResult->set_value('ANTS-diff-SyN-metric',$ANTSDIFFSyNMETRIC);
 ###
 my @tmparray=();
 # possible error conditions, 
-# size of runno_array < size of channel_array 
-if ( $#runno_array<$#channel_array){
+# size of runno_list < size of channel_list 
+if ( $#runno_list<$#channel_list){
     print("WARNING: More channels specified than provided, guessing correct number\n"); # if ($debug_val >=35);
-    for (my $run=0;$run<=$#runno_array;$run++) {
-	push @tmparray, $channel_array[$run];
+    for (my $run=0;$run<=$#runno_list;$run++) {
+	push @tmparray, $channel_list[$run];
     }
-    @channel_array=@tmparray;
+    @channel_list=@tmparray;
 }
-#size of runno_array < nchannels
-if ($#runno_array<$nchannels-1 ) { # this maybe should be<= not <
+#size of runno_list < nchannels
+if ($#runno_list<$nchannels-1 ) { # this maybe should be<= not <
     print("WARNING: More channels desired for regiistration than provided, guessing correct number\n"); # if ($debug_val >=35);
-    $nchannels=min($#channel_array,$#runno_array)+1; 
+    $nchannels=min($#channel_list,$#runno_list)+1; 
     
-    for (my $run=0;$run<=$#runno_array;$run++) {
-	push @tmparray, $channel_array[$run];
+    for (my $run=0;$run<=$#runno_list;$run++) {
+	push @tmparray, $channel_list[$run];
     }
-    @channel_array=@tmparray;
+    @channel_list=@tmparray;
 } 
-if ($#channel_array<$nchannels-1) { # $# is max_index of 0 indexed array, so we in fact need to look for 1 less than the real number of channels
-        log_info("Only found $#channel_array channels. MUST SPECIFY TWO OR THREE CHANNELS.(The third is mostly along for the ride.) Less than 2 channels not currently tested, all registrations based on two channels, ");
+if ($#channel_list<$nchannels-1) { # $# is max_index of 0 indexed array, so we in fact need to look for 1 less than the real number of channels
+        log_info("Only found $#channel_list channels. MUST SPECIFY TWO OR THREE CHANNELS.(The third is mostly along for the ride.) Less than 2 channels not currently tested, all registrations based on two channels, ");
 
-	print ("WARNING: changing number of channels to ($#runno_array+1)\n");
-	$nchannels=$#channel_array+1;
+	print ("WARNING: changing number of channels to ($#runno_list+1)\n");
+	$nchannels=$#channel_list+1;
 } 
 if ($debug_val>=35)
 {print("Registering using metrics for the frist $nchannels channels.\n") ; sleep(3);}
@@ -164,13 +164,13 @@ if ($debug_val>=35)
 # depend on which metrics we're using, we're changing the metric options file from T1,T2W,T2star, etc to CH1, CH2, etc. 
 my $HfAntsmetrics = get_ants_metric_opts();
 # my $transformtype="affine";
-# for my $ch_id (@channel_array) { 
+# for my $ch_id (@channel_list) { 
 #     my $opt=$HfAntsmetrics->get_value("${transformtype}-${ANTSAFFINEMETRIC}-${ch_id}");
 #     if ($opt eq 'UNDEFINED_VALUE' || $opt eq 'NO_KEY') { error_out("could not get metric ${transformtype}-${ANTSAFFINEMETRIC}-${ch_id} from ants $transformtype metric options");}
 #     $HfResult->set_value ("${transformtype}-${ANTSAFFINEMETRIC}-${ch_id}-weighting",$opt);
 # } 
 # $transformtype="diff-SyN";
-# for my $ch_id (@channel_array) { 
+# for my $ch_id (@channel_list) { 
 #     my $opt=$HfAntsmetrics->get_value("${transformtype}-${ANTSDIFFSyNMETRIC}-${ch_id}");
 #     if ($opt eq 'UNDEFINED_VALUE' || $opt eq 'NO_KEY') { error_out("could not get metric ${transformtype}-${ANTSDIFFSyNMETRIC}-${ch_id} from ants $transformtype metric options");}
 #     $HfResult->set_value ("${transformtype}-${ANTSDIFFSyNMETRIC}-${ch_id}-weighting",$opt);
@@ -178,14 +178,14 @@ my $HfAntsmetrics = get_ants_metric_opts();
 my $transformtype = "affine";
 $err_buffer = ''; #clear buffer to for looking up the metric options in the metric opts file
 print("ANTS metric weighting options\n");
-#for my $ch_id (@channel_array) { 
+#for my $ch_id (@channel_list) { 
 for(my $num=0;$num<=$nchannels-1;$num++) { 
     my $ch_id = "CH" . ($num+1) ;
     my $opt = $HfAntsmetrics->get_value("${transformtype}-${ANTSAFFINEMETRIC}-${ch_id}");
     if ($opt eq 'UNDEFINED_VALUE' || $opt eq 'NO_KEY') {
 	$err_buffer = $err_buffer . "\n\tcould not get metric ${transformtype}-${ANTSAFFINEMETRIC}-${ch_id} from ants $transformtype metric options" ;
     } else { 
-	$ch_id = $channel_array[$num];# despite getting the ch1 id from the option file, we're still gonna store it under the t1, etc option in out headfile. 
+	$ch_id = $channel_list[$num];# despite getting the ch1 id from the option file, we're still gonna store it under the t1, etc option in out headfile. 
 	$HfResult->set_value ("${transformtype}-${ANTSAFFINEMETRIC}-${ch_id}-weighting",$opt);
 	log_info("\tchannel" . ($num+1) ."=${transformtype}-${ANTSAFFINEMETRIC}-${ch_id}-weighting <- $opt");
     }
@@ -197,7 +197,7 @@ for(my $num=0;$num<=$nchannels-1;$num++) {
     if ($opt eq 'UNDEFINED_VALUE' || $opt eq 'NO_KEY') {
 	$err_buffer = $err_buffer . "\n\tcould not get metric ${transformtype}-${ANTSDIFFSyNMETRIC}-${ch_id} from ants $transformtype metric options";
     } else {
-	$ch_id = $channel_array[$num];# despite getting the ch1 id from the option file, we're still gonna store it under the t1, etc option in out headfile. 
+	$ch_id = $channel_list[$num];# despite getting the ch1 id from the option file, we're still gonna store it under the t1, etc option in out headfile. 
 	$HfResult->set_value ("${transformtype}-${ANTSDIFFSyNMETRIC}-${ch_id}-weighting",$opt);
 	log_info("\tchannel" . ($num+1) ."=${transformtype}-${ANTSDIFFSyNMETRIC}-${ch_id}-weighting <-$opt");
     }
@@ -208,10 +208,10 @@ error_out($err_buffer) unless ($err_buffer eq '');
 print 
 ("Command line info provided to main:
     raw opts:  $cmd_line
-    ".join(',',@channel_array).",
-    ".join(',',@runno_array).",
-    subproj source: $subproject_source_runnos, 
-    subproj result: $subproject_segmentation_result, 
+    ".join(',',@channel_list).",
+    ".join(',',@runno_list).",
+    subproj source: $subproject_source, 
+    subproj result: $subproject_result, 
     pull=$pull_source_images, flip_y=$flip_y, flip_z=$flip_z, noise_reduction:$noise_reduction, coil_bias=$coil_bias,
     registration_channels:$nchannels,
     suffix=$extra_runno_suffix 
@@ -225,7 +225,7 @@ print
 ###
 $err_buffer=''; #error message buffer, so we'll see all errors with atlas before quiting. 
 my $labelfile ="$atlas_labels_dir/${atlas_id}_labels.nii";
-for my $ch_id (@channel_array) {
+for my $ch_id (@channel_list) {
     my $imagefile ="$atlas_images_dir/${atlas_id}_${ch_id}.nii";
     if (!-e $imagefile) {
 	$err_buffer = $err_buffer . "\n\t$imagefile";
@@ -237,10 +237,10 @@ if (!-e $labelfile) {
 # if there was an error locating the atlas image files or labels
 error_out ("$PIPELINE_NAME Missing atlas files:$err_buffer") unless ($err_buffer eq '');
 
-$HfResult->set_value('runno_ch_commalist',join(',',@channel_array));
-$HfResult->set_value('runno_commalist',join(',',@runno_array));
-$HfResult->set_value('subproject_source_runnos', $subproject_source_runnos);
-$HfResult->set_value('subproject'              , $subproject_segmentation_result);
+$HfResult->set_value('runno_ch_commalist',join(',',@channel_list));
+$HfResult->set_value('runno_commalist',join(',',@runno_list));
+$HfResult->set_value('subproject_source', $subproject_source);
+$HfResult->set_value('subproject_result'              , $subproject_result);
 $HfResult->set_value('flip_y'                  , $flip_y);
 $HfResult->set_value('flip_z'                  , $flip_z);
 $HfResult->set_value('noise_reduction'         , $noise_reduction);
@@ -250,21 +250,23 @@ $HfResult->set_value('coil_bias'               , $coil_bias);
 $HfResult->set_value('specid'  , "NOT_HANDLED_YET");
 # --- set runno info in HfResult
 print ("Inserting Channel runnos to headfile:\n");
-my $i;
-for($i=0;$i<=$#runno_array;$i++) {
-    print ("\t${channel_array[$i]}\n") if ($debug_val >=5);
-    $HfResult->set_value("${channel_array[$i]}-runno", $runno_array[$i]);
-}
+
 # --- get source images, genericified for arbitrary channels
 my $dest_dir = $HfResult->get_value('dir-input'); # for retrieved images
 if (! -e $dest_dir) { mkdir $dest_dir; }
 if (! -e $dest_dir) { error_out ("no dest dir! $dest_dir"); }
 
-for my $ch_id (@channel_array) {
-    #print("retrieving archive data for channel ${channel_array[$i]}\n");
-    #locate_data($pull_source_images, "${channel_array[$i]}" , $HfResult);
-    print("retrieving archive data for channel ${ch_id}\n");
-    locate_data($pull_source_images, "${ch_id}" , $HfResult);
+my $i;
+for($i=0;$i<=$#runno_list;$i++) {
+    print ("\t${channel_list[$i]}\n") if ($debug_val >=5);
+    $HfResult->set_value("${channel_list[$i]}-runno", $runno_list[$i]);
+}
+for my $ch_id (@channel_list) {
+    #print("retrieving archive data for channel ${channel_list[$i]}\n");
+    #locate_data($pull_source_images, "${channel_list[$i]}" , $HfResult);
+#    print("retrieving archive data for channel ${ch_id}\n");
+    locate_data_util($pull_source_images, "${ch_id}" , $HfResult);
+    #locate_data_util($pull_source_images, "${ch_id}" ,$runno, $HfResult);
 }
 
 # $flip_y, $flip_z,
