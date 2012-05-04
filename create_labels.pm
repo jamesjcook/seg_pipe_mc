@@ -205,7 +205,7 @@ sub create_multi_channel_diff_syn_transform {
 	    $diffsyn_iter="1x0x0x0";
 	}
     }
-    $my_options = "-i $diffsyn_iter -t SyN[$syn_setting] -r Gauss[1,0.05] --continue-affine true -a $affine_xform --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
+    $my_options = "-i $diffsyn_iter -t SyN[$syn_setting] -r Gauss[1,0.5] --continue-affine true -a $affine_xform --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
     
     #/////// define ants transform command including all options ///////
     my $cmd = "$ants_app_dir/ants 3 $metrics -o $result_transform_path_base $other_options $my_options";
