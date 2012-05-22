@@ -64,6 +64,8 @@ usage:
                       NOTE: must be set for the bit mask value to have meaning. 
      -y             : Flip input Y, all input images will be flipped in y before use (this happens before niftify).
      -z             : Flip input Z, all input images will be flipped in z before use (this happens before niftify).
+     -p             : Port atlas mask. Will generate a skull mask with the input dataset and use that to guide a 
+                      registration of the atlas mask. The registered atlas mask will be used for skull stripping.
      -m  channels   : Channels considered for registration, Default 2, if more than this number 
                       of channels is specified they will not be used for registration, and will
                       just have the transforms applied. 
@@ -105,7 +107,7 @@ dual contrast, with exsiting nii data (using test data set up from the install)
 dual contrast, with existing data using non standard contrasts.
 \tseg_pipe_mc -a phant -i /pipe_home/whs_references/phant_images \\
                        -l /pipe_home/whs_references/phant_labels \\
-                       -q T1,T2 \\
+                       -q T1,T2W \\
                        -eb 01111111 TESTDATA TESTDATA2 11.test.01 11.test.01
 
 "; 
@@ -116,7 +118,7 @@ sub command_line_mc {
   if ($#ARGV+1 == 0) { usage_message_mc("");}
   print "unprocessed args: @ARGV\n" if ($debug_val >=35);;
   my %options = ();
-  if (! getopts('a:b:cei:l:mn:oq:s:tyz', \%options)) {
+  if (! getopts('a:b:cei:l:mn:opq:s:tyz', \%options)) {
     print "Problem with command line options.\n";
     usage_message_mc("problem with getopts");
   } 
@@ -191,12 +193,23 @@ sub command_line_mc {
   }
   $arg_hash{coil_bias}=$coil_bias;
 
+  my $port_atlas_mask;
+  if (defined $options{p}) {  # -p
+     $port_atlas_mask = 1;
+     push @singleopts,'p';
+     print STDERR "  Porting atlas mask via registration to generated.(-p)\n";
+  } else {
+     $port_atlas_mask = 0;
+#     print STDERR "  Port mask disabled\n";
+  }
+  $arg_hash{port_atlas_mask}=$port_atlas_mask;
   if (defined $options{t}) { #-t   testmode
       $test_mode = 1;
       push @singleopts,'t';
       print STDERR "  TESTMODE enabled, will do very fast(incomplete) ANTS calls! (-t)\n" if ($debug_val>=10);
   }
   print "testmode:$test_mode\n" if ($debug_val>=45); 
+
   
   my $flip_y = 0;
   if (defined $options{y}) {  # -y

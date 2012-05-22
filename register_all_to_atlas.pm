@@ -115,7 +115,7 @@ sub apply_atlas_transform
 
 
   my $do_inverse_bool = 1;
-  apply_transform($ggo, $to_deform_path, $result_path, $do_inverse_bool, $xform_path, $domain_path, $ants_app_dir);
+  apply_affine_transform($ggo, $to_deform_path, $result_path, $do_inverse_bool, $xform_path, $domain_path, $ants_app_dir);
 
   # -- store result (registered image's) path in headfile
   #    first make a result_id: remove _strip_path suffix, leave prefix (eg T2star, T2W)

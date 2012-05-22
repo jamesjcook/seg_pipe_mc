@@ -78,7 +78,7 @@ sub register_rigid_to_channel1 {
   ###apply_transform($ggo, $xform_path, $moving_path, $fixed_path, $result_path, $ants_app_dir); #direct
 
   my $do_inverse_bool = 1;
-  apply_transform ($ggo, $to_deform_path, $result_path, $do_inverse_bool, $xform_path, $warp_domain_path, $ants_app_dir); 
+  apply_affine_transform ($ggo, $to_deform_path, $result_path, $do_inverse_bool, $xform_path, $warp_domain_path, $ants_app_dir); 
 
   # -- put result registered image's path in headfile
   #    first make registered result id: remove _nii_path suffix, leave prefix (eg T2star, T2W)

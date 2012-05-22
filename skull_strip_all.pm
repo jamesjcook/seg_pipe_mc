@@ -1,19 +1,22 @@
 #!/usr/local/pipeline-link/perl
 
 # skull_strip_all.pm
+# 2012/05/10 james cook, added function to use a ported labelset
+#            that registeres the atlas mask to the generated mask. 
 # 2012/03/27 james cook, fixed up variables to match new convetion, 
 #            now skull strips arbitrary number of channel stored in 
 #            comma chanel list
 # slg made this up based on abb 11/11/09 v of mask_Ts_aug5.m 
 # created 2009/11/12 Sally Gewalt CIVM 
 
-my $VERSION = "2012/03/27";
+my $VERSION = "2012/05/10";
 my $NAME = "Alex Badea skull strip Method";
 my $DESC = "matlab and ants";
 my $ggo = 1;
 my $SKULL_MASK_MFUNCTION =  "strip_mask";  # an mfile function in matlab directory, but no .m here
 my $PM = "skull_strip_all.pm";
 my $debug_val = 5;
+
 
 use strict;
 use vars qw($PID $nchannels);
@@ -34,6 +37,12 @@ sub skull_strip_all {
   my $mask_path_tmp  = make_skull_mask ("${channel1}-nii-path", 2,  $Hf);
   make_sane_mask($ggo, $mask_path_tmp,"${channel1}-nii-path", $Hf);
   my $norm_mask_path = normalize_skull_mask ($ggo, $mask_path_tmp, 'norm_mask', $Hf);
+##### should insert transform whs mask to specimen here.
+# think i want a ... port whs function, might call rigid transform function from registration pm
+  if ($Hf->get_value('port_atlas_mask')) { 
+      $mask_path_tmp=port_atlas_mask($ggo,$norm_mask_path, "${channel1}", $Hf); 
+      $norm_mask_path= normalize_skull_mask ($ggo, $mask_path_tmp, 'whs_ported_mask', $Hf);
+  }
   $Hf->set_value('skull-norm-mask-path', $norm_mask_path);  # save mask to aid labelling
   my $result_path;
   $result_path = apply_skull_mask(   "${channel1}-nii-path", $norm_mask_path, 'strip', $Hf);
@@ -127,3 +136,43 @@ sub make_skull_mask {
   return ($mask_path);
 }
 
+# ------------------
+sub port_atlas_mask {
+# ------------------
+    my ($ggo,$mask_path, $result_suffix, $Hf) =@_;
+    # get altas file
+    # get 
+    my $atlas_id         = $Hf->get_value('reg-target-atlas-id');
+    my $atlas_images_dir = $Hf->get_value('dir-atlas-images');
+    my $ants_app_dir     = $Hf->get_value('engine-app-ants-dir');
+    my $to_deform_path =  $mask_path;
+	
+    my $domain_path = $atlas_images_dir . "/${atlas_id}_maskMD.nii";
+#    my $warp_domain_path=$domain_path;
+    my $interp= '--use-NN';
+
+    my $dot_less_deform_path       = remove_dot_suffix($to_deform_path);
+    my ($domain_name,$domain_folder,$domain_suffix) = fileparts($domain_path);
+    my ($to_deform_name,$to_deform_folder,$to_deform_suffix) = fileparts($to_deform_path);
+    my $result_transform_path_base = "${to_deform_folder}/${to_deform_name}_2_${domain_name}_transform_";
+###
+# calc transform
+    my $transform_path=create_transform ($ggo, 'nonrigid_MSQ', $domain_path, $to_deform_path, $result_transform_path_base, $ants_app_dir);
+    
+#   my $result_path = "${dot_less_deform_path}_${result_suffix}\.nii"; # ants wants .nii on result_path
+
+    
+###
+# apply transform
+# must now change the deform and domain, we're an inverse
+# 
+    $to_deform_path=$domain_path; # change to the atlas
+    $domain_path=$mask_path;      # change to the input mask
+    my ($domain_name,$domain_folder,$domain_suffix) = fileparts($domain_path);
+    my ($to_deform_name,$to_deform_folder,$to_deform_suffix) = fileparts($to_deform_path);
+
+    my $result_path="${domain_folder}/${to_deform_name}_2_${domain_name}.nii";	
+    my $do_inverse_bool=1;# we want to start exposing this option.
+    apply_affine_transform ($ggo, $to_deform_path, $result_path, $do_inverse_bool, $transform_path, $domain_path, $ants_app_dir, $interp); 
+    return ($result_path);
+}

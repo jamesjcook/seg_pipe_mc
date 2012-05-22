@@ -15,12 +15,17 @@ sub create_transform {
 # ------------------
   my ($go, $xform_code, $A_path, $B_path, $result_transform_path_base, $ants_app_dir) = @_;
 
+  my $affine_iter="3000x3000x3000x3000";
+  if (defined $test_mode) {
+      if ($test_mode==1) {
+	  $affine_iter="1x0x0x0";
+      }
+  }
   my $cmd;
-
   if ($xform_code eq 'rigid1') {
-    # -------- rigid1 -------------------
-    #exe1="${ANTSPATH}ants 3 -m PR[T2s_file_nii,T1_file_nii,1,4] -i 0 --UseHistogramMatching --rigid-affine true --MI-option 16x8000 -r Gauss[3,0] -o 
-    #fileT2s_out_transform -number-of-affine-iterations 100x20x10x1 --affine-gradient-descent-option 0.1x0.5x1.e-4x1.e-4 -v"
+      # -------- rigid1 -------------------
+      #exe1="${ANTSPATH}ants 3 -m PR[T2s_file_nii,T1_file_nii,1,4] -i 0 --UseHistogramMatching --rigid-affine true --MI-option 16x8000 -r Gauss[3,0] -o 
+      #fileT2s_out_transform -number-of-affine-iterations 100x20x10x1 --affine-gradient-descent-option 0.1x0.5x1.e-4x1.e-4 -v"
 # --- from ants.pdf: 
 # That is, if we map image B to A using 
 # ANTS 2 -m PR[A,B,1,2] -o OUTPUT 
@@ -31,29 +36,25 @@ sub create_transform {
 # --- later in the pdf they show this example: where A is aka the "template.nii", so as above "B is transformed to A"?
 #    ANTS 3 -m PR[template.nii.gz,subject.nii.gz,1,2] -i 10x50x50x20 -o subjectmap.nii -t SyN[0.25] -r Gauss[3,0] 
 # For the T1 call, -v output calls A fixed and B moving.  
-      my $affine_iter="3000x3000x3000x3000";
-      if (defined $test_mode) {
-	  if ($test_mode==1) {
-	      $affine_iter="1x0x0x0";
-	  }
-      }
       #  --- is this an inverse transform?  -i 0 ?
       my $opts1 = "-i 0 --use-Histogram-Matching --rigid-affine true --MI-option 32x8000 -r Gauss[3,0.5]";
       my $opts2 = "--number-of-affine-iterations $affine_iter --affine-gradient-descent-option 0.8x0.5x1.e-4x1.e-4 -v";  
-#     if (defined $test_mode) {
-# 	if ($test_mode == 1) {
-# 	    $opts2 = "--number-of-affine-iterations 1x0x0x0 --affine-gradient-descent-option 0.8x0.5x1.e-4x1.e-4 -v";  
-# 	}
-#     }
-    #$cmd = "$ants_app_dir/ANTS 3 -m CC[$A_path,$B_path,1,4] $opts1 -o $result_transform_path_base $opts2"; #option - but time consuming
-    $cmd = "$ants_app_dir/ANTS 3 -m MI[$A_path,$B_path,1,32] $opts1 -o $result_transform_path_base $opts2";
-
-    # -------- rigid1 -------------------
+      #$cmd = "$ants_app_dir/ANTS 3 -m CC[$A_path,$B_path,1,4] $opts1 -o $result_transform_path_base $opts2"; #option - but time consuming
+      $cmd = "$ants_app_dir/ANTS 3 -m MI[$A_path,$B_path,1,32] $opts1 -o $result_transform_path_base $opts2";
+      
+      
+  } elsif ( $xform_code eq 'nonrigid_MSQ' ) {
+      # -------- portatlasmask -------------------
+      #  --- is this an inverse transform?  -i 0 ?
+      my $opts1 = "-i 0 ";
+      my $opts2 = "--number-of-affine-iterations $affine_iter --affine-metric-type MSQ";  
+#      --affine-gradient-descent-option 0.8x0.5x1.e-4x1.e-4 -v
+      $cmd = "$ants_app_dir/ANTS 3 -m MSQ[ $A_path,$B_path,1,2] $opts1 -o $result_transform_path_base $opts2";
   }
   else {
-    error_out("$PM create_transform: don't understand xform_code: $xform_code\n");
+      error_out("$PM create_transform: don't understand xform_code: $xform_code\n");
   }
-
+  
   # shorten up the info msg...
   my @list = split '/', $A_path;
   my $A_file = pop @list;
@@ -70,11 +71,17 @@ sub create_transform {
   }
   return($transform_path);
 }
-
 # ------------------
 sub apply_transform {
 # ------------------
-  my ($go, $to_deform_path, $result_path, $do_inverse_bool, $transform_path, $warp_domain_path, $ants_app_dir) =@_; 
+    funct_obsolete("apply_transform", "apply_affine_transform");
+    apply_affine_transform(@_);
+}
+
+# ------------------
+sub apply_affine_transform {
+# ------------------
+  my ($go, $to_deform_path, $result_path, $do_inverse_bool, $transform_path, $warp_domain_path, $ants_app_dir, $interp) =@_; 
 
 ### args to wimt: from ants.pdf
 # 3  expected image dimension. 
@@ -93,7 +100,7 @@ sub apply_transform {
   #/Volumes/alex_home/braindata/whs/T1by2/N31238by2.nii -i /Users/alex/whs/rN32083by2Affine.txt"
 
   my $i_opt = $do_inverse_bool ? '-i' : ''; 
-  my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform_path $result_path -R $warp_domain_path $i_opt $transform_path"; 
+  my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform_path $result_path -R $warp_domain_path $i_opt $transform_path $interp"; 
 
   my @list = split '/', $transform_path;
   my $transform_file = pop @list;

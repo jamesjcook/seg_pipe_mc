@@ -77,6 +77,7 @@ my $atlas_labels_dir = $arghash{atlas_labels_dir}; # -l
 $nchannels = $arghash{registration_channels};      # -m this is subject to change
 my $atlas_id = $arghash{atlas_id};                 # -a this is subject to change
 my $atlas_images_dir = $arghash{atlas_images_dir}; # -i
+my $port_atlas_mask=$arghash{port_atlas_mask};     # -p 
 my $cmd_line = $arghash{cmd_line};
 
 if ( $noise_reduction eq "--NONE" ) {
@@ -215,6 +216,7 @@ print
     pull=$pull_source_images, flip_y=$flip_y, flip_z=$flip_z, noise_reduction:$noise_reduction, coil_bias=$coil_bias,
     registration_channels:$nchannels,
     suffix=$extra_runno_suffix 
+    port_atlas_mask=$port_atlas_mask,
     domask=$do_bit_mask
     atlas_labels_dir=$atlas_labels_dir
     atlas_images_dir=$atlas_images_dir
@@ -237,14 +239,15 @@ if (!-e $labelfile) {
 # if there was an error locating the atlas image files or labels
 error_out ("$PIPELINE_NAME Missing atlas files:$err_buffer") unless ($err_buffer eq '');
 
-$HfResult->set_value('runno_ch_commalist',join(',',@channel_list));
-$HfResult->set_value('runno_commalist',join(',',@runno_list));
-$HfResult->set_value('subproject_source', $subproject_source);
-$HfResult->set_value('subproject_result'              , $subproject_result);
+$HfResult->set_value('runno_ch_commalist'      , join(',',@channel_list));
+$HfResult->set_value('runno_commalist'         , join(',',@runno_list));
+$HfResult->set_value('subproject_source'       , $subproject_source);
+$HfResult->set_value('subproject_result'       , $subproject_result);
 $HfResult->set_value('flip_y'                  , $flip_y);
 $HfResult->set_value('flip_z'                  , $flip_z);
 $HfResult->set_value('noise_reduction'         , $noise_reduction);
 $HfResult->set_value('coil_bias'               , $coil_bias);
+$HfResult->set_value('port_atlas_mask'         , $port_atlas_mask);
 
 #get specid from data headfiles?
 $HfResult->set_value('specid'  , "NOT_HANDLED_YET");

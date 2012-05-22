@@ -244,7 +244,7 @@ sub warp_label_image {
     my $channel1 = ${channel_array[0]};
 
     my $channel1_runno   = $Hf->get_value("${channel1}-runno");
-
+    my $channel1_path      = $Hf->get_value("${channel1}-reg2-${atlas_id}-path");
     my $to_deform = $label_dir . "/${atlas_id}_labels.nii"; 
     if (! -e $to_deform) {
 	error_out("$PM warp_atlas_image: did not find ${atlas_id} labels: $to_deform");
@@ -253,7 +253,9 @@ sub warp_label_image {
     my $result_path      = "$result_path_base\.nii";
     #print ("result path $result_path_base, $channel1_runno, $result_dir --------\n");
 
-    my $warp_domain_path = $to_deform;
+    #my $warp_domain_path = $to_deform;
+    my $warp_domain_path=$channel1_path;
+
     
     #my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path 
     #-R $warp_domain_path --use-NN $warp_xform\.nii.gz $affine_xform\.txt";

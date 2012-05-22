@@ -77,9 +77,9 @@ sub label_brain_pipe {
 #step5
   skull_strip_all($strip, $Hf_out);
 #step6
-  register_all_to_atlas($atlas, $Hf_out);
+  register_all_to_atlas($atlas, $Hf_out); # rigid affine to atlas
 #step7
-  create_labels($label, $Hf_out);
+  create_labels($label, $Hf_out); # diffeo to atlas of the rigid register.
 #step8
   calculate_volumes($volumes, $Hf_out);
 #put in results
