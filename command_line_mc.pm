@@ -54,11 +54,11 @@ usage:
                           ex 00.anything.00  (format is ##.<text>.##  or ([0-9]{2}[.]\w[.][0-9]{2}) )
      subproj_result     : destination subproject, subproject for the results (image, label) under. 
                           ex 00.anything.00
-   options(all options are optional):
+   options (all options are optional):
      -q             : Channel queue. A coma separated list of channels. 
                       The default is T1,T2W,T2star. Suppored channels T1,T2W,T2star,adc,dwi,e1,fa
      -e             : Data exists locally, the data will not be copied from the archive.
-     -c             : Coil Bias enable, n4 coil bias will be calculated and applied to all input.
+     -c             : Coil Bias enable, N4 coil bias will be calculated and applied to all input.
                       NOTE: must be set for the bit mask value to have meaning. 
      -n  type       : Noise Correction, must specify type ex -n SUSAN, OR -n Bilateral,
                       NOTE: must be set for the bit mask value to have meaning. 
@@ -69,7 +69,7 @@ usage:
      -m  channels   : Channels considered for registration, Default 2, if more than this number 
                       of channels is specified they will not be used for registration, and will
                       just have the transforms applied. 
-     -s  suffix     : optional suffix for output directory, 
+     -s  suffix     : Optional suffix for output directory, 
                       WARNING: letters, numbers or underscore ONLY([a-zA-Z_0-9]). 
      -l  dir        : Label directory, default is set in setup files. 
                       Directory must contain <atlas_id>_labels.nii files, use -a (see below).
@@ -92,6 +92,8 @@ usage:
                       Skipping is only for gross testing of commands created and not guaranteed to produce results.
      -t             : test mode, cuts all iterations for ants to 1x0x0x0, really fun with bit mask for rapid code testing. 
                       eg, this option is NOT FOR REGULAR USERS. 
+     -d   direction : Optional argument for specifying the direction of registration, default uses inverse
+                       use f or i : f forward transforms, i inverse transforms applied to atlas labels (default)
 
 version: $PIPELINE_VERSION 
 
@@ -118,7 +120,7 @@ sub command_line_mc {
   if ($#ARGV+1 == 0) { usage_message_mc("");}
   print "unprocessed args: @ARGV\n" if ($debug_val >=35);;
   my %options = ();
-  if (! getopts('a:b:cei:l:mn:opq:s:tyz', \%options)) {
+  if (! getopts('a:b:cd:ei:l:mn:opq:s:tyz', \%options)) {
     print "Problem with command line options.\n";
     usage_message_mc("problem with getopts");
   } 
@@ -233,6 +235,7 @@ sub command_line_mc {
   }
   $arg_hash{flip_z}=$flip_z;
   
+
   ##opts with arguments
   my $channel_order='T1,T2W,T2star';
   if (defined $options{q}) {  # -q 
@@ -242,6 +245,22 @@ sub command_line_mc {
       print STDERR "  Using default channel order $channel_order\n" if ($debug_val>=10);
   }
   $arg_hash{channel_order}=$channel_order;
+
+
+  my $transform_direction='i';
+  if (defined $options{d} ) {  # -d 
+    if ( $options{d} eq 'f' || $options{d} eq 'i' ) { 
+      $transform_direction = $options{d};
+      $cmd_line = "-d $transform_direction " . $cmd_line;
+    } else { 
+      error_out("Bad transform direction, only f or i is valid.");
+    }
+  } else { 
+    print STDERR "  Using default transform direction $transform_direction\n" if ($debug_val>=10);
+  }
+  $arg_hash{transform_direction}=$transform_direction;
+
+
 
   my $extra_runno_suffix = "--NONE";
   if (defined $options{s}) {  # -s

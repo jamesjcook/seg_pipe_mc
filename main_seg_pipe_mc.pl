@@ -16,6 +16,7 @@
 
 
 
+
 #package seg_pipe_mc;
 
 use strict;
@@ -70,6 +71,7 @@ my $flip_y = $arghash{flip_y};                     # -y
 my $flip_z = $arghash{flip_z};                     # -z
 my $noise_reduction = $arghash{noise_reduction};   # -n
 my $coil_bias = $arghash{coil_bias};               # -c
+my $transform_direction = $arghash{transform_direction};
 my $pull_source_images = $arghash{data_pull};      # -e
 my $extra_runno_suffix = $arghash{extra_runno_suffix}; # -s 
 my $do_bit_mask = $arghash{bit_mask};              # -b
@@ -79,6 +81,9 @@ my $atlas_id = $arghash{atlas_id};                 # -a this is subject to chang
 my $atlas_images_dir = $arghash{atlas_images_dir}; # -i
 my $port_atlas_mask=$arghash{port_atlas_mask};     # -p 
 my $cmd_line = $arghash{cmd_line};
+
+
+
 
 if ( $noise_reduction eq "--NONE" ) {
     $do_bit_mask=($do_bit_mask & "10111111"); # disable the noise do bit if we're not supposed to be noise correcting, this is only part of the enable code, see also the noise_reduction hf key
@@ -103,22 +108,26 @@ set_environment($nominal_runno); # opens headfile, log file, loads the setting v
 $HfResult->set_value('program_arguments',$cmd_line);
 if ($atlas_labels_dir eq "DEFAULT") { # handle -l option
     $atlas_labels_dir = $HfResult->get_value('dir-whs-labels-default');
+
 }
 log_info("  Using canonical labels dir = $atlas_labels_dir"); 
 if (! -e $atlas_labels_dir) { error_out ("unable to find canonical labels directory $atlas_labels_dir");  } 
 $HfResult->set_value('dir-atlas-labels', $atlas_labels_dir);
 
+
 if ($atlas_images_dir eq "DEFAULT") { # handle -i and -a options
-    $atlas_id = 'whs';
-    $atlas_images_dir = $HfResult->get_value('dir-whs-images-default');
+  $atlas_id = 'whs';
+  $atlas_images_dir = $HfResult->get_value('dir-whs-images-default');
 } else {
-    if ($atlas_id eq 'DEFAULT') { 
-	$atlas_id='whs';
-    }
+  if ($atlas_id eq 'DEFAULT') { 
+    $atlas_id='whs';
+  }
 }
 
 $HfResult->set_value('reg-target-atlas-id',$atlas_id);
 $HfResult->set_value('dir-atlas-images', $atlas_images_dir);
+$HfResult -> set_value('transform_direction',$transform_direction);
+
 if (! -e $atlas_images_dir) { error_out ("unable to find canonical images directory $atlas_images_dir");  } 
 log_info("        canonical images dir = $atlas_images_dir"); 
 

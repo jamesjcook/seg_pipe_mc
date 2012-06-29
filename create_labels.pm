@@ -52,14 +52,14 @@ sub create_labels {
 
     my $affine_xform  = create_multi_channel_affine_transform ($Hf);
 
-    my ($ds_affine_xform_base, $ds_warp_xform_base, $ds_inverse_warp_xform_base, $ants_transform_prefix) = create_multi_channel_diff_syn_transform ($affine_xform, $SYNSETTING , $Hf); 
+    my ($ants_transform_prefix) = create_multi_channel_diff_syn_transform ($affine_xform, $SYNSETTING , $Hf); 
     #syn_setting defined as 0.5, we could save this to hf perhaps, or more fun, specify it elsewhere and store in headfile.
 
 #  my $label_path      = warp_canonical_labels($ants_transform_prefix, $Hf); # obsolete funciton does same thing as warp_label_image, and warp_label_image has been updated alot since this was in main use.
 
     #####my $warp_label_path = warp_label_image($ds_affine_xform_base, $ds_warp_xform_base, $Hf);
-    my $warp_label_path = warp_label_image($ds_affine_xform_base, $ds_inverse_warp_xform_base, $Hf);
-    warp_canonical_image($ds_affine_xform_base, $ds_inverse_warp_xform_base, $Hf); 
+    my $warp_label_path = warp_label_image($Hf);
+    #warp_canonical_image($Hf); # 28 June 2012
     
 #  log_info ("Pipeline created result 1: $label_path\n"); # ouput of obsolete function, do not use. 
     log_info ("Pipeline created result 2: $warp_label_path\n");
@@ -88,9 +88,12 @@ sub create_multi_channel_affine_transform {
     my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
     my $channel1 = ${channel_array[0]};
     my $result_transform_path_base = "$work_dir/${channel1}_label_transform_";
-    
+    my $transform_direction=$Hf->get_value('transform_direction');
+
 # build metrics, only using first two channels for now, that is set in the main_seg_pipe_mc script with nchannels variable, 
 # if you only specify one channel it will only use one.
+
+
     my $metrics='';
 
     for(my $chindex=0;$chindex<$nchannels;$chindex++) {
@@ -103,7 +106,14 @@ sub create_multi_channel_affine_transform {
 	if ( ! -e $channel_path ) { # crap out on missing file
 	    error_out ("$PM create_multi_channel_affine_transform: $channel_path does not exist<${ch_id}-reg2-${atlas_id}-path>"); 
 	} else {
-	    $metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option}]"; 
+            if ($transform_direction eq 'i')
+	      {
+		$metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option}]"; 
+	      }
+           elsif ($transform_direction eq 'f')
+	     {
+	       $metrics = $metrics . " -m ${metric}[${channel_path},${atlas_image_path},${channel_option}]"; 
+	     }
 	}
     }
     if ($debug_val>=35) {  
@@ -167,6 +177,11 @@ sub create_multi_channel_diff_syn_transform {
     my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
     my $channel1 = ${channel_array[0]};
     my $result_transform_path_base = "$work_dir/${channel1}_label_DIFF_SYN_transform_";
+    my $transform_direction=$Hf->get_value('transform_direction');
+    my $ref_skull_mask='';
+    my $canon_image_dir    = $Hf->get_value('dir-atlas-images');
+    my $norm_mask_path = $Hf->get_value('skull-norm-mask-path');  # save mask to aid labelling
+
 
     #/////// define options for transform ////////// 
 # build metrics, only using first two channels for now, i want to change that later. 
@@ -180,7 +195,16 @@ sub create_multi_channel_diff_syn_transform {
 	if ( ! -e $channel_path ) { # crap out on missing file
 	    error_out ("$PM create_multi_channel_affine_transform: $channel_path does not exist<${ch_id}-reg2-${atlas_id}-path>");
 	} else {
-	    $metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option}]"; 
+	    if ($transform_direction eq 'i')
+	      {
+		$metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option}]"; 
+                $ref_skull_mask   = "$canon_image_dir/${atlas_id}_mask.nii"; # a canonical reference mask
+	      }
+           elsif ($transform_direction eq 'f')
+	     {
+	       $metrics = $metrics . " -m ${metric}[${channel_path},${atlas_image_path},${channel_option}]"; 
+               $ref_skull_mask   = $norm_mask_path;
+	     }
 	}
     }
     my $affine_iter="3000x3000x3000x3000";
@@ -192,8 +216,11 @@ sub create_multi_channel_diff_syn_transform {
     my $other_options ="";
     $other_options = "--number-of-affine-iterations $affine_iter --MI-option 32x16000 --use-Histogram-Matching";
     ###my $skull_mask   = $Hf->get_value('skull_norm_mask_path');  #### but we don't want to use this current mask for -x
-    my $canon_image_dir    = $Hf->get_value('dir-atlas-images');
-    my $ref_skull_mask   = "$canon_image_dir/ref_mask.nii"; # a canonical reference mask
+  
+
+
+    $ref_skull_mask   = "$canon_image_dir/${atlas_id}_mask.nii"; # a canonical reference mask
+
     if (! -e $ref_skull_mask) {
 	error_out ("$PM create_diff_syn_transfrom: Reference skull mask $ref_skull_mask does not exist for -x option") ;
     }
@@ -205,7 +232,7 @@ sub create_multi_channel_diff_syn_transform {
 	    $diffsyn_iter="1x0x0x0";
 	}
     }
-    $my_options = "-i $diffsyn_iter -t SyN[$syn_setting] -r Gauss[1,0.5] --continue-affine true -a $affine_xform --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
+    $my_options = "-i $diffsyn_iter -t SyN[$syn_setting] -r Gauss[1,0.5] -x $ref_skull_mask --continue-affine true -a $affine_xform --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
     
     #/////// define ants transform command including all options ///////
     my $cmd = "$ants_app_dir/ants 3 $metrics -o $result_transform_path_base $other_options $my_options";
@@ -219,11 +246,16 @@ sub create_multi_channel_diff_syn_transform {
 	error_out("$PM create_multi_channel_diff_syn_transform: did not find result xform: $transform_path");
     }
     print "** $PM create_multi_channel_diff_syn_transform created $transform_path, etc\n";
-    my $affine_xform_base         = $result_transform_path_base . "Affine";
+    my $affine_xform_base           = $result_transform_path_base . "Affine";
     my $diff_syn_xform_base         = $result_transform_path_base . "Warp";
     my $diff_syn_inverse_xform_base = $result_transform_path_base . "InverseWarp";
     my $ants_transform_prefix = $result_transform_path_base;
-    return($affine_xform_base, $diff_syn_xform_base, $diff_syn_inverse_xform_base, $ants_transform_prefix);
+
+    $Hf->set_value('diff_affine', $affine_xform_base);
+    $Hf->set_value('diff_warp', $diff_syn_xform_base);
+    $Hf->set_value('diff_inv_warp', $diff_syn_inverse_xform_base);
+
+    return($ants_transform_prefix);
 }
 
 # ------------------
@@ -233,7 +265,7 @@ sub warp_label_image {
 # this function is nearly itdentical to warp_canonical_label
 # this should warp from atlas labels to the atlas registered input images. 
 # my ($affine_xform, $warp_xform, $Hf) = @_;
-    my ($affine_xform, $inverse_warp_xform, $Hf) = @_;
+    my ($Hf) = @_;
     print("\n\n\t$PM stage 3/$PM_stages \"warp_label_image\" \n\n\n") if ($debug_val >= 35) ;
 
     my $label_dir        = $Hf->get_value('dir-atlas-labels');
@@ -246,6 +278,12 @@ sub warp_label_image {
     my $channel1_runno   = $Hf->get_value("${channel1}-runno");
     my $channel1_path      = $Hf->get_value("${channel1}-reg2-${atlas_id}-path");
     my $to_deform = $label_dir . "/${atlas_id}_labels.nii"; 
+
+    my $transform_direction = $Hf->get_value('transform_direction');
+    my $affine_xform = $Hf->get_value('diff_affine');
+    my $warp_xform = $Hf->get_value('diff_warp');
+    my $inverse_warp_xform = $Hf->get_value('diff_inv_warp');
+
     if (! -e $to_deform) {
 	error_out("$PM warp_atlas_image: did not find ${atlas_id} labels: $to_deform");
     }
@@ -259,8 +297,18 @@ sub warp_label_image {
     
     #my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path 
     #-R $warp_domain_path --use-NN $warp_xform\.nii.gz $affine_xform\.txt";
+    	my $cmd='';
 
-    my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN  -i $affine_xform\.txt $inverse_warp_xform\.nii.gz";
+ if ($transform_direction eq 'i')
+	      {
+	    $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN  -i $affine_xform\.txt $inverse_warp_xform\.nii.gz"; 
+	      }
+           elsif ($transform_direction eq 'f')
+	     {
+	      $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN $warp_xform\.nii.gz $affine_xform\.txt";
+	     }
+
+    
 
     print("warp_label_image: $cmd\n");
     if (! execute($ggo, "warp_label_image", $cmd) ) {
@@ -305,6 +353,7 @@ sub warp_canonical_image {
     my $result_dir       = $Hf->get_value('dir-work');
     my $result_path_base = "$result_dir/${channel1}-${atlas_id}canon_warp2_${channel1}-${channel1_runno}\_reg2_${atlas_id}";
     my $result_path      = "$result_path_base\.nii";
+    
     #print ("result path $result_path --------\n");
     #changed feb 26 because the warpsare saved as gz
 
