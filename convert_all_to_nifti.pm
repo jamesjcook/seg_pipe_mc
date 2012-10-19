@@ -22,7 +22,7 @@ sub convert_all_to_nifti {
   # dimensions are for the SOP acquisition. 
   my $nii_raw_data_type_code = 4; # civm .raw  (short - big endian)
   my $nii_i32_data_type_code = 8; # .i32 output of t2w image set creator 
-
+  my $ants_app_dir           = $Hf_out->get_value('engine-app-ants-dir');
   my @channel_array=split(',',$Hf_out->get_value('runno_ch_commalist'));
 
 
@@ -72,23 +72,48 @@ sub convert_all_to_nifti {
 	  my $dest_nii_file = "${in_name}.${in_ext}";
 	  my $dest_dir      = $Hf_out->get_value("dir-work");
 	  my $dest_nii_path = "$dest_dir/$dest_nii_file";
-	
+	  my  $NIFTI_MFUNCTION = $Hf_out->get_value("nifti_matlab_converter");
 	  $nii_ch_id = "$ch_id\-nii";
   	  $Hf_out->set_value("$ch_id\_image-suffix", $in_ext); 
 	  $Hf_out->set_value("$nii_ch_id\-file" , $dest_nii_file);
 	  $Hf_out->set_value("$nii_ch_id\-path", $dest_nii_path);
 	  
-	  my $cmd = "cp $in_file $dest_nii_path";
+    
+	  ######## clean up these options.
+	  my $src_image_path=$in_path;
+	  my $image_prefix=$in_name;
+	  my $image_suffix=$in_ext;
+#	  $dest_nii_path=0;
+	  my ($xdim,$ydim,$zdim) =(0,0,0);#### should get this from nii.hdr in matlab
+	  #$nii_datatype_code=$nii_raw_data_type_code;
+	  my ($xvox,$yvox,$zvox) =(0,0,0);#### should get this from nii.hdr in matlab
+#	  $flip_y=0;
+#	  $flip_z=0;
+	  my $sliceselect    = $Hf_out->get_value_like("slice-selection");  # using get_value like is experimental, should be switched to get_value if this fails.
+	  my ($zstart, $zstop);
+	  
+	  my @stringargs = ($src_image_path,$image_prefix,$image_suffix,$dest_nii_path);
+	  my @numargs =    ($xdim, $ydim, $zdim, $nii_raw_data_type_code, $xvox,$yvox,$zvox, $flip_y, $flip_z);
+
+	  if ( $sliceselect eq "all" || $sliceselect eq "NO_KEY" || $sliceselect eq "UNDEFINED_VALUE" || $sliceselect eq "EMPTY_VALUE" ) { 
+	    # do nothing with zstart, zstop
+	    $zstart='';
+	    $zstop='';
+	  } else { 
+	    ($zstart, $zstop) = split('-',$sliceselect);
+	    push(@numargs,$zstart);
+	    push(@numargs,$zstop);
+	  } 
+
+	  my $args = "'".join('\', \'',@stringargs)."',".join(', ',@numargs);
+	  my $cmd =  make_matlab_command ($NIFTI_MFUNCTION, $args, "$ch_id\_", $Hf_out); 
+	  #INSERT flip nifti code here abouts, maybe with flip nii function
+#	  my $cmd="$ants_app_dir/PermuteFlipImageOrientationAxes 3 $in_file $dest_nii_path 0 1 2 0 $flip_y $flip_z 1"; 
+	  #PermuteFlipImageOrientationAxes ImageDimension  inputImageFile  outputImageFile xperm yperm {zperm}  xflip yflip {zflip}  {FlipAboutOrigin}
+#	  my $cmd = "cp $in_file $dest_nii_path";
+
 	  push @cmd_list, $cmd;
 	  
-#	  $Hf_out->setValue("$ch_id\-file
-#my $dest_nii_file = "$runno\.nii";
-#	  mv $runno_dir
-
-#	  my $dest_nii_file = "$runno\.nii";
-#	  my $dest_nii_path = "$dest_dir/$dest_nii_file";
-#	  my $runno          = $Hf->get_value("$setid\-file");  # runno of civmraw format scan 
-#	  my $src_image_path = $Hf->get_value("$setid\-path");
       } else {
 	  error_out("Unsupported channel name $ch_id\n");
       }
@@ -100,7 +125,7 @@ sub convert_all_to_nifti {
   }
   
   if($#cmd_list>=0) {#_indep_forks
-      execute($go, "copying dti derrived to work", @cmd_list) or error_out("failed to move nii input files to work dir");
+      execute($go, "copying dti derrived to work and flip if necessary", @cmd_list) or error_out("failed to move nii input files to work dir");
   }
 
 }

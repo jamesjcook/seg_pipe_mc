@@ -54,6 +54,13 @@ my $ANTSAFFINEMETRIC = "MI"; # could be any of the ants supported metrics, this 
 my $ANTSDIFFSyNMETRIC = "CC"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by chaning the naem of this in the headfile, and looking up those different variable names in the pipe.
 #$nchannels = 2; # number of channels to include in metrics, be nice to use all channels, but thats for the future, will have to edit lines containing this to be $#channel_list instead, to use all possible channels. perhaps we should do some kindof either or, another option flag telling the number of specified channels to use for the registration.
 # this has been set up as the -m option, will remain undocumented for now. 
+my  $NIFTI_MFUNCTION = 'civm_to_nii_flip';  
+# an mfile function in matlab directory, but no .m here 
+# _may version includes flip_z (_feb does not)
+# flip version can flip nifti's 
+# note: nii conversion function requires big endian input image data at this time
+# note: function handles up to 999 images in each set now
+
 
 # ---- main ------------
 # pull inputs using the command_line_mc input parser.
@@ -273,6 +280,8 @@ for($i=0;$i<=$#runno_list;$i++) {
     print ("\t${channel_list[$i]}\n") if ($debug_val >=5);
     $HfResult->set_value("${channel_list[$i]}-runno", $runno_list[$i]);
 }
+
+$HfResult->set_value("nifti_matlab_converter",$NIFTI_MFUNCTION); 
 for my $ch_id (@channel_list) {
     #print("retrieving archive data for channel ${channel_list[$i]}\n");
     #locate_data($pull_source_images, "${channel_list[$i]}" , $HfResult);

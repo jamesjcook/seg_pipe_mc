@@ -88,6 +88,7 @@ sub create_multi_channel_affine_transform {
     my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
     my $channel1 = ${channel_array[0]};
     my $result_transform_path_base = "$work_dir/${channel1}_label_transform_";
+                           # $result_transform_path_base = "$work_dir/${channel1}_label_DIFF_SYN_transform_";# alex 12 october 12
     my $transform_direction=$Hf->get_value('transform_direction');
 
 # build metrics, only using first two channels for now, that is set in the main_seg_pipe_mc script with nchannels variable, 
@@ -133,25 +134,31 @@ sub create_multi_channel_affine_transform {
     if ( defined($test_mode)) {
 	if( $test_mode == 1 ) {
 	    $affine_iter="1x0x0x0";
+
 	}}
-    my $other_options = "-i 0 --number-of-affine-iterations $affine_iter --MI-option 32x32000 --use-Histogram-Matching --affine-gradient-descent-option 0.2x0.5x0.0001x0.0001";
-#   if ( defined($test_mode)) {
-#       if( $test_mode == 1 ) {
-# 	  $other_options = "-i 0 --number-of-affine-iterations 1x0x0x0 --MI-option 32x32000 --use-Histogram-Matching --affine-gradient-descent-option 0.2x0.5x0.0001x0.0001"; 
-#       }
-#   }
+#old ants
+    my $other_options = "-i 0 --number-of-affine-iterations $affine_iter --MI-option 32x32000 --use-Histogram-Matching --affine-gradient-descent-option 0.2x0.5x0.0001x0.0001"; # can use 0.05x0.5x0.0001x0.0001
+#go paralell
+   # my $other_options="-t Affine[0.5] -c $affine_iter -s 0x0x0x0 -f 8x4x2x1 -u";  
+
 #for mutual information metric use 
 # my $cmd = "$ants_app_dir/ants 3 -m ${METRIC}[$metric0] -m ${METRIC}[$metric1] -o $result_transform_path_base $other_options";
-    my $cmd = "$ants_app_dir/ants 3 $metrics -o $result_transform_path_base $other_options";
-#for PR use
+
     #my $cmd = "$ants_app_dir/ants 3 -m PR[$metric0] -m PR[$metric1] -o $result_transform_path_base $other_options";
     #my $cmd = "$ants_app_dir/ants 3 $metrics -o $result_transform_path_base $other_options";
+
+#old ants
+my $cmd = "$ants_app_dir/ants 3 $metrics -o $result_transform_path_base $other_options";
+
+#go paralell
+# my $cmd = "$ants_app_dir/antsRegistration -d 3 -o $result_transform_path_base  $metrics $other_options";
     if ($DEBUG_GO) { 
 	if (! execute($ggo, "create affine transform for labels", $cmd) ) {
 	    error_out("$PM create_affine_transform: could not make transform: $cmd\n");
 	}
     } 
     my $transform_path = "$result_transform_path_base\Affine.txt";
+
     # suffix mentioned on: http://picsl.upenn.edu/ANTS/ioants.php, and confirmed by what appears!
     # note: don't have any dots . in the middle of your base path, just one at the end: .nii
     
@@ -197,7 +204,9 @@ sub create_multi_channel_diff_syn_transform {
 	} else {
 	    if ($transform_direction eq 'i')
 	      {
+		
 		$metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option}]"; 
+
                 $ref_skull_mask   = "$canon_image_dir/${atlas_id}_mask.nii"; # a canonical reference mask
 	      }
            elsif ($transform_direction eq 'f')
@@ -215,6 +224,7 @@ sub create_multi_channel_diff_syn_transform {
     }
     my $other_options ="";
     $other_options = "--number-of-affine-iterations $affine_iter --MI-option 32x16000 --use-Histogram-Matching";
+   
     ###my $skull_mask   = $Hf->get_value('skull_norm_mask_path');  #### but we don't want to use this current mask for -x
   
 
@@ -226,35 +236,62 @@ sub create_multi_channel_diff_syn_transform {
     }
 
     my $my_options ="";
-    my $diffsyn_iter="3000x3000x3000x3000";
+#long run
+    my $diffsyn_iter= "3000x3000x3000x3000"; #matt please change bact to 3000x3000
+#short run
+ $diffsyn_iter="3000x3000x3000x0" ; # matt change back to "3000x3000x3000";
+
     if ( defined($test_mode)) {
 	if( $test_mode == 1 ) {
 	    $diffsyn_iter="1x0x0x0";
 	}
     }
-    $my_options = "-i $diffsyn_iter -t SyN[$syn_setting] -r Gauss[1,0.5] -x $ref_skull_mask --continue-affine true -a $affine_xform --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
-    
+   # $my_options = "-i $diffsyn_iter -t SyN[$syn_setting] -r Gauss[1,0.5] -x $ref_skull_mask --continue-affine true -a $affine_xform --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
+  #old ants version
+ #$my_options = "-i $diffsyn_iter -t SyN[$syn_setting] -r Gauss[1,0.5] -x $ref_skull_mask --continue-affine true -a $affine_xform --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
+
+#go paralell alx
+
+
+#long run
+ $my_options = "-c $diffsyn_iter -s 0x0x0x0 -f 8x4x2x1 -t SyN[$syn_setting,1,0.5] -x $ref_skull_mask -r $affine_xform -a 0"; 
+
+#short run
+ $my_options = "-c $diffsyn_iter -s 0x0x0x0 -f 8x4x2x2 -t SyN[$syn_setting,1,0.5] -x $ref_skull_mask -r $affine_xform -a 0"; 
+  
     #/////// define ants transform command including all options ///////
-    my $cmd = "$ants_app_dir/ants 3 $metrics -o $result_transform_path_base $other_options $my_options";
+   # my $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -o $result_transform_path_base $other_options $my_options";
+#go paralell alx
+    my $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -o $result_transform_path_base $my_options";
+
+
     if ($DEBUG_GO) { 
 	if (! execute($ggo, "create affine diff syn transform for labels 3/2012\n\n\n", $cmd) ) {
 	    error_out("$PM create_multi_channel_diff_syn_transform: could not make transform: $cmd\n");
 	}
     } 
-    my $transform_path = "$result_transform_path_base\Affine.txt"; # one of result files
-    if (!-e $transform_path && $ggo) {
-	error_out("$PM create_multi_channel_diff_syn_transform: did not find result xform: $transform_path");
-    }
-    print "** $PM create_multi_channel_diff_syn_transform created $transform_path, etc\n";
-    my $affine_xform_base           = $result_transform_path_base . "Affine";
-    my $diff_syn_xform_base         = $result_transform_path_base . "Warp";
-    my $diff_syn_inverse_xform_base = $result_transform_path_base . "InverseWarp";
+    #    my $affine_xform_base           = $result_transform_path_base . "Affine"; #bogus with new version of ants
+    # Should find a better way to find these than to use the _alt method, should do a search on wild card to get the right filename, this will work for now. 
+    my $diff_syn_xform_base             = $result_transform_path_base . "Warp";
+    my $diff_syn_xform_base_alt         = $result_transform_path_base . "1Warp";
+    my $diff_syn_inverse_xform_base     = $result_transform_path_base . "InverseWarp";
+    my $diff_syn_inverse_xform_base_alt = $result_transform_path_base . "1InverseWarp";
     my $ants_transform_prefix = $result_transform_path_base;
 
-    $Hf->set_value('diff_affine', $affine_xform_base);
-    $Hf->set_value('diff_warp', $diff_syn_xform_base);
-    $Hf->set_value('diff_inv_warp', $diff_syn_inverse_xform_base);
-
+    $Hf->set_value('diff_affine', $affine_xform);
+    if ( -e $diff_syn_xform_base.".nii.gz" && $ggo ) { 
+      $Hf->set_value('diff_warp', $diff_syn_xform_base);
+      $Hf->set_value('diff_inv_warp', $diff_syn_inverse_xform_base);
+      print "** $PM create_multi_channel_diff_syn_transform created $diff_syn_xform_base\.nii.gz, etc\n";
+    } else { 
+      if ( ! -e $diff_syn_xform_base_alt.".nii.gz" && $ggo ) {      
+	error_out("$PM create_multi_channel_diff_syn_transform: did not find result xform: $diff_syn_xform_base_alt\.nii.gz or $diff_syn_xform_base\.nii.gz");
+      } #lazy fall through without else to keep code smaller. 
+      $Hf->set_value('diff_warp', $diff_syn_xform_base_alt);
+      $Hf->set_value('diff_inv_warp', $diff_syn_inverse_xform_base_alt);
+      print "** $PM create_multi_channel_diff_syn_transform created $diff_syn_xform_base_alt\.nii.gz, etc\n";
+    }
+    #go paralell alx
     return($ants_transform_prefix);
 }
 
@@ -301,11 +338,13 @@ sub warp_label_image {
 
  if ($transform_direction eq 'i')
 	      {
-	    $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN  -i $affine_xform\.txt $inverse_warp_xform\.nii.gz"; 
+	    #$cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN  -i $affine_xform\.txt $inverse_warp_xform\.nii.gz"; 
+           $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN  -i $affine_xform $inverse_warp_xform\.nii.gz"; 
 	      }
            elsif ($transform_direction eq 'f')
 	     {
-	      $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN $warp_xform\.nii.gz $affine_xform\.txt";
+	      #$cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN $warp_xform\.nii.gz $affine_xform\.txt";
+              $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN $warp_xform\.nii.gz $affine_xform";
 	     }
 
     
