@@ -33,15 +33,35 @@ sub skull_strip_all {
   log_info ("$PM desc: $DESC");
   log_info ("$PM version: $VERSION");
 
-  log_info ("-------reconcile headers: make_sane_mask start");
-  my $mask_path_tmp  = make_skull_mask ("${channel1}-nii-path", 2,  $Hf);
+
+
+  ####if skull mask does not exist
+  my $mask_path_tmp ;    #tmp because we will make sane mask, and then normalize, in the future normalize wont be used(maybe)
+  my $norm_mask_path;
+  my $nii_less_path = remove_dot_suffix($Hf->get_value("${channel1}-nii-path"));
+  $mask_path_tmp = "${nii_less_path}_manual_mask\.nii";
+  if ( $Hf->get_value('use_existing_mask')) {
+
+    if ( ! -e $mask_path_tmp ) { 
+      error_out(" Did not find manual mask \"$mask_path_tmp\"");
+    } 
+    log_info ("------- Manual Masking Used:$mask_path_tmp");    
+    #$Hf-get_value('manual_mask_path')
+  } else {
+    $mask_path_tmp  = make_skull_mask ("${channel1}-nii-path", 2,  $Hf);
+    log_info ("------- Made skull mask:$mask_path_tmp");    
+    ### if using existing mask
+    # norm_mask_path = $bla?runno_mask_manual.nii
+  }
+  log_info ("------- reconcile headers: make_sane_mask start");
   make_sane_mask($ggo, $mask_path_tmp,"${channel1}-nii-path", $Hf);
-  my $norm_mask_path = normalize_skull_mask ($ggo, $mask_path_tmp, 'norm_mask', $Hf);
-##### should insert transform whs mask to specimen here.
-# think i want a ... port whs function, might call rigid transform function from registration pm
+  $norm_mask_path = normalize_skull_mask ($ggo, $mask_path_tmp, $channel1.'norm_mask', $Hf);
+  
+  ##### should insert transform whs mask to specimen here.
+  # think i want a ... port whs function, might call rigid transform function from registration pm
   if ($Hf->get_value('port_atlas_mask')) { 
-      $mask_path_tmp=port_atlas_mask($ggo,$norm_mask_path, "${channel1}", $Hf); 
-      $norm_mask_path= normalize_skull_mask ($ggo, $mask_path_tmp, 'whs_ported_mask', $Hf);
+      $mask_path_tmp  = port_atlas_mask($ggo,$norm_mask_path, "${channel1}", $Hf); 
+      $norm_mask_path = normalize_skull_mask ($ggo, $mask_path_tmp, 'whs_ported_mask', $Hf);
   }
   $Hf->set_value('skull-norm-mask-path', $norm_mask_path);  # save mask to aid labelling
   my $result_path;
@@ -52,7 +72,7 @@ sub skull_strip_all {
   if ($#channel_array>=1) { 
       for my $ch_id (@channel_array[1,$#channel_array]) {
 	  $result_path = apply_skull_mask("${ch_id}-reg2-${channel1}-path", $norm_mask_path, 'strip', $Hf);
-# --- store result file paths for masked results under these ids
+     # --- store result file paths for masked results under these ids
 	  $Hf->set_value (   "${ch_id}-strip-path",     $result_path);
       }
   }
@@ -91,23 +111,23 @@ sub normalize_skull_mask {
 # ------------------
 sub apply_skull_mask {
 # ------------------
+# in_image_path_id  headfile var containing path to input image
+# mask_path         path to mask
+# result_suffix     text string added to result filename before filename extension
   my ($in_image_path_id, $mask_path, $result_suffix, $Hf) = @_;
   # slg made this up based on abb 11/11/09 v of mask_Ts_aug5.m
   my $ants_app_dir = $Hf->get_value('engine-app-ants-dir');
   if ($ants_app_dir eq 'NO_KEY'){ $ants_app_dir = $Hf->get_value('engine_app_ants_dir'); }
   my $in_image_path = $Hf->get_value($in_image_path_id);
-#  if ($in_image_path eq 'NO_KEY') { error_out("could not find registered image for ch_id $in_image_path_id"); }
+  #  if ($in_image_path eq 'NO_KEY') { error_out("could not find registered image for ch_id $in_image_path_id"); }
   print("apply_skull_mask:\n\tengine_ants_path:$ants_app_dir\n\tin_image_path:$in_image_path\n") if ($debug_val>=25);
   if ($ggo) {
     if (!-e $in_image_path) {error_out("$PM apply_mask: missing image file to mask $in_image_path\n")}
     if (!-e $mask_path)     {error_out("$PM apply_mask: missing mask image file $mask_path\n")}
   }
 
-
-
   my $nii_less_path = remove_dot_suffix($in_image_path);
   my $out_nii_path  = "$nii_less_path\_$result_suffix\.nii";
-
   if ($ggo) {
     im_apply_mask($in_image_path, $mask_path, $out_nii_path, $ants_app_dir);
   }

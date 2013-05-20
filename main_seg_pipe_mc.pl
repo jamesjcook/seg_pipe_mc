@@ -87,6 +87,7 @@ $nchannels = $arghash{registration_channels};      # -m this is subject to chang
 my $atlas_id = $arghash{atlas_id};                 # -a this is subject to change
 my $atlas_images_dir = $arghash{atlas_images_dir}; # -i
 my $port_atlas_mask=$arghash{port_atlas_mask};     # -p 
+my $use_existing_mask=$arghash{use_existing_mask};     # -k
 my $cmd_line = $arghash{cmd_line};
 
 
@@ -233,6 +234,7 @@ print
     registration_channels:$nchannels,
     suffix=$extra_runno_suffix 
     port_atlas_mask=$port_atlas_mask,
+    use_existing__mask=$use_existing_mask,
     domask=$do_bit_mask
     atlas_labels_dir=$atlas_labels_dir
     atlas_images_dir=$atlas_images_dir
@@ -243,7 +245,10 @@ print
 ###
 $err_buffer=''; #error message buffer, so we'll see all errors with atlas before quiting. 
 my $labelfile ="$atlas_labels_dir/${atlas_id}_labels.nii";
-for my $ch_id (@channel_list) {
+
+#for my $ch_id (@channel_list) {#fixed to ignore atlas checks on volumes we're not registerting
+for ( my $ch_num=0; $ch_num<$nchannels; $ch_num++) {
+    my $ch_id=$channel_list[$ch_num];
     my $imagefile ="$atlas_images_dir/${atlas_id}_${ch_id}.nii";
     if (!-e $imagefile) {
 	$err_buffer = $err_buffer . "\n\t$imagefile";
@@ -264,6 +269,7 @@ $HfResult->set_value('flip_z'                  , $flip_z);
 $HfResult->set_value('noise_reduction'         , $noise_reduction);
 $HfResult->set_value('coil_bias'               , $coil_bias);
 $HfResult->set_value('port_atlas_mask'         , $port_atlas_mask);
+$HfResult->set_value('use_existing_mask'       , $use_existing_mask);
 
 #get specid from data headfiles?
 $HfResult->set_value('specid'  , "NOT_HANDLED_YET");

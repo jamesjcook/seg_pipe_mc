@@ -27,7 +27,7 @@ use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT 
 
 
 my $NREQUIRED_ARGS = 3;
-my $MAX_ARGS = 5;
+#my $MAX_ARGS = 5;
 my $debug_val = 5;
 
 # ------------------
@@ -66,6 +66,8 @@ usage:
      -z             : Flip input Z, all input images will be flipped in z before use (this happens before niftify).
      -p             : Port atlas mask. Will generate a skull mask with the input dataset and use that to guide a 
                       registration of the atlas mask. The registered atlas mask will be used for skull stripping.
+     -k             : Advanced option for masking,
+                      use existing mask file named \"runno_channel1_manual_mask.nii\" in the work directory on disk.
      -m  channels   : Channels considered for registration, Default 2, if more than this number 
                       of channels is specified they will not be used for registration, and will
                       just have the transforms applied. 
@@ -120,7 +122,7 @@ sub command_line_mc {
   if ($#ARGV+1 == 0) { usage_message_mc("");}
   print "unprocessed args: @ARGV\n" if ($debug_val >=35);;
   my %options = ();
-  if (! getopts('a:b:cd:ei:l:mn:opq:s:tyz', \%options)) {
+  if (! getopts('a:b:cd:ei:kl:m:n:opq:s:tyz', \%options)) {
     print "Problem with command line options.\n";
     usage_message_mc("problem with getopts");
   } 
@@ -133,14 +135,6 @@ sub command_line_mc {
       }
       usage_message_mc("Too few arguments($#ARGV+1) on command line $argoutstring"); 
   }
-  if ($#ARGV+1 > $MAX_ARGS) { 
-      my $argoutstring='';
-      for my $arg (@ARGV) {
-	  $argoutstring="${argoutstring}\n\t$arg";
-      }
-      usage_message_mc("Too many arguments($#ARGV+1) on command line $argoutstring"); 
-  }
-
   # -- handle required params
   my $cmd_line = "";
   foreach my $a (@ARGV) {  # save the cmd line for annotation
@@ -167,6 +161,17 @@ sub command_line_mc {
   $runnolist=shift @ARGV;
   while( $#ARGV>=0 ) { $runnolist=$runnolist . ',' . shift @ARGV ; } # dump optionally infinite runno's here.
   $arg_hash{runnolist}=$runnolist;
+
+
+  if ($#ARGV >  0 ) { 
+      my $argoutstring='';
+      for my $arg (@ARGV) {
+	  $argoutstring="${argoutstring}\n\t$arg";
+      }
+      usage_message_mc("Arguments remaining ($#ARGV+1) on command line $argoutstring"); 
+  }
+
+
 
   #  -- handle cmd line options...
   ## single letter opts
@@ -205,6 +210,17 @@ sub command_line_mc {
 #     print STDERR "  Port mask disabled\n";
   }
   $arg_hash{port_atlas_mask}=$port_atlas_mask;
+
+  my $use_existing_mask;
+  if (defined $options{k}) {  # -k
+     $use_existing_mask = 1;
+     push @singleopts,'k';
+     print STDERR "  Using existing mask named runno_channel1_manual_mask.nii. (-k)\n";
+  } else {
+     $use_existing_mask = 0;
+  }
+  $arg_hash{use_existing_mask}=$use_existing_mask;
+
   if (defined $options{t}) { #-t   testmode
       $test_mode = 1;
       push @singleopts,'t';

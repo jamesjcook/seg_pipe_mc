@@ -11,8 +11,8 @@
 # 2009/12/09 slg diff syn iteration changes from Alex, orig still working after 3 days
 # 2009/12/09 slg iteration changes from Alex
 # created 2009/10/28 Sally Gewalt CIVM
-
-
+# 5 November 2012 use syn 0.75; smoothing [3,1]
+# 6 November 2012 use syn 1; smoothing [3,1]
 
 my $VERSION = "2012/04/09";
 my $NAME = "Alex Badea brain label creation Method";
@@ -34,7 +34,7 @@ my $gwhs_T1_path;
 
 my $DEBUG_GO = 1;
 my $debug_val = 5;
-my $SYNSETTING=0.5;
+my $SYNSETTING=1; #0.75; #%was 0.5
 #my $METRIC = "MI"; # could be any of the ants supported metrics, defined in main as a global, so bad to do that. should really chage that....
 
 
@@ -137,7 +137,7 @@ sub create_multi_channel_affine_transform {
 
 	}}
 #old ants
-    my $other_options = "-i 0 --number-of-affine-iterations $affine_iter --MI-option 32x32000 --use-Histogram-Matching --affine-gradient-descent-option 0.2x0.5x0.0001x0.0001"; # can use 0.05x0.5x0.0001x0.0001
+    my $other_options = "-i 0 --number-of-affine-iterations $affine_iter --MI-option 32x32000 --use-Histogram-Matching --affine-gradient-descent-option 0.05x0.5x0.0001x0.0001"; # can use 0.2x0.5x0.0001x0.0001
 #go paralell
    # my $other_options="-t Affine[0.5] -c $affine_iter -s 0x0x0x0 -f 8x4x2x1 -u";  
 
@@ -223,7 +223,7 @@ sub create_multi_channel_diff_syn_transform {
 	}
     }
     my $other_options ="";
-    $other_options = "--number-of-affine-iterations $affine_iter --MI-option 32x16000 --use-Histogram-Matching";
+    $other_options = "--number-of-affine-iterations $affine_iter --MI-option 32x32000 --use-Histogram-Matching";#was 32x16000
    
     ###my $skull_mask   = $Hf->get_value('skull_norm_mask_path');  #### but we don't want to use this current mask for -x
   
@@ -239,7 +239,7 @@ sub create_multi_channel_diff_syn_transform {
 #long run
     my $diffsyn_iter= "3000x3000x3000x3000"; #matt please change bact to 3000x3000
 #short run
- $diffsyn_iter="3000x3000x3000x0" ; # matt change back to "3000x3000x3000";
+ $diffsyn_iter="3000x3000x3000x3000" ; # matt change back to "3000x3000x3000";
 
     if ( defined($test_mode)) {
 	if( $test_mode == 1 ) {
@@ -255,9 +255,10 @@ sub create_multi_channel_diff_syn_transform {
 
 #long run
  $my_options = "-c $diffsyn_iter -s 0x0x0x0 -f 8x4x2x1 -t SyN[$syn_setting,1,0.5] -x $ref_skull_mask -r $affine_xform -a 0"; 
+ $my_options = "-c $diffsyn_iter -s 0x0x0x0 -f 8x4x2x1 -t SyN[$syn_setting,3,1] -x $ref_skull_mask -r $affine_xform -a 0"; 
 
 #short run
- $my_options = "-c $diffsyn_iter -s 0x0x0x0 -f 8x4x2x2 -t SyN[$syn_setting,1,0.5] -x $ref_skull_mask -r $affine_xform -a 0"; 
+# $my_options = "-c $diffsyn_iter -s 0x0x0x0 -f 8x4x2x1 -t SyN[$syn_setting,1,0.5] -x $ref_skull_mask -r $affine_xform -a 0"; 
   
     #/////// define ants transform command including all options ///////
    # my $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -o $result_transform_path_base $other_options $my_options";
