@@ -109,11 +109,11 @@ sub create_multi_channel_affine_transform {
 	} else {
             if ($transform_direction eq 'i')
 	      {
-		$metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option}]"; 
+		$metrics = $metrics . " -m ${metric}[ ${atlas_image_path},${channel_path},${channel_option}]"; 
 	      }
            elsif ($transform_direction eq 'f')
 	     {
-	       $metrics = $metrics . " -m ${metric}[${channel_path},${atlas_image_path},${channel_option}]"; 
+	       $metrics = $metrics . " -m ${metric}[ ${channel_path},${atlas_image_path},${channel_option}]"; 
 	     }
 	}
     }
@@ -138,14 +138,6 @@ sub create_multi_channel_affine_transform {
 	}}
 #old ants
     my $other_options = "-i 0 --number-of-affine-iterations $affine_iter --MI-option 32x32000 --use-Histogram-Matching --affine-gradient-descent-option 0.05x0.5x0.0001x0.0001"; # can use 0.2x0.5x0.0001x0.0001
-#go paralell
-   # my $other_options="-t Affine[0.5] -c $affine_iter -s 0x0x0x0 -f 8x4x2x1 -u";  
-
-#for mutual information metric use 
-# my $cmd = "$ants_app_dir/ants 3 -m ${METRIC}[$metric0] -m ${METRIC}[$metric1] -o $result_transform_path_base $other_options";
-
-    #my $cmd = "$ants_app_dir/ants 3 -m PR[$metric0] -m PR[$metric1] -o $result_transform_path_base $other_options";
-    #my $cmd = "$ants_app_dir/ants 3 $metrics -o $result_transform_path_base $other_options";
 
 #old ants
 my $cmd = "$ants_app_dir/ants 3 $metrics -o $result_transform_path_base $other_options";
@@ -193,29 +185,7 @@ sub create_multi_channel_diff_syn_transform {
     #/////// define options for transform ////////// 
 # build metrics, only using first two channels for now, i want to change that later. 
     my $metrics='';
-    for(my $chindex=0;$chindex<$nchannels;$chindex++) {
-	my $ch_id=$channel_array[$chindex];
-	my $channel_option = $Hf->get_value("diff-SyN-${metric}-${ch_id}-weighting");
-	if ( $channel_option eq 'NO_KEY' ) { error_out ("could not find metric diff-SyN-${metric}-${ch_id}-weighting "); }
-	my $channel_path      = $Hf->get_value("${ch_id}-reg2-${atlas_id}-path");
-	my $atlas_image_path  = "${atlas_images_dir}/${atlas_id}_${ch_id}.nii"; # $Hf->get_value();
-	if ( ! -e $channel_path ) { # crap out on missing file
-	    error_out ("$PM create_multi_channel_affine_transform: $channel_path does not exist<${ch_id}-reg2-${atlas_id}-path>");
-	} else {
-	    if ($transform_direction eq 'i')
-	      {
-		
-		$metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option}]"; 
-
-                $ref_skull_mask   = "$canon_image_dir/${atlas_id}_mask.nii"; # a canonical reference mask
-	      }
-           elsif ($transform_direction eq 'f')
-	     {
-	       $metrics = $metrics . " -m ${metric}[${channel_path},${atlas_image_path},${channel_option}]"; 
-               $ref_skull_mask   = $norm_mask_path;
-	     }
-	}
-    }
+    
     my $affine_iter="3000x3000x3000x3000";
     if ( defined($test_mode)) {
 	if( $test_mode == 1 ) {
@@ -240,28 +210,57 @@ sub create_multi_channel_diff_syn_transform {
     my $diffsyn_iter= "3000x3000x3000x3000"; #matt please change bact to 3000x3000
 #short run
  $diffsyn_iter="3000x3000x3000x3000" ; # matt change back to "3000x3000x3000";
+ $diffsyn_iter="3000x3000x3000";
 
     if ( defined($test_mode)) {
 	if( $test_mode == 1 ) {
 	    $diffsyn_iter="1x0x0x0";
+            $diffsyn_iter="1x0x0";
 	}
     }
-   # $my_options = "-i $diffsyn_iter -t SyN[$syn_setting] -r Gauss[1,0.5] -x $ref_skull_mask --continue-affine true -a $affine_xform --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
-  #old ants version
- #$my_options = "-i $diffsyn_iter -t SyN[$syn_setting] -r Gauss[1,0.5] -x $ref_skull_mask --continue-affine true -a $affine_xform --affine-gradient-descent-option 0.1x0.5x0.0001x0.0001";
-
+  
 #go paralell alx
 
+for(my $chindex=0;$chindex<$nchannels;$chindex++) {
+	my $ch_id=$channel_array[$chindex];
+	my $channel_option = $Hf->get_value("diff-SyN-${metric}-${ch_id}-weighting");
+	if ( $channel_option eq 'NO_KEY' ) { error_out ("could not find metric diff-SyN-${metric}-${ch_id}-weighting "); }
+	my $channel_path      = $Hf->get_value("${ch_id}-reg2-${atlas_id}-path");
+	my $atlas_image_path  = "${atlas_images_dir}/${atlas_id}_${ch_id}.nii"; # $Hf->get_value();
+	if ( ! -e $channel_path ) { # crap out on missing file
+	    error_out ("$PM create_multi_channel_affine_transform: $channel_path does not exist<${ch_id}-reg2-${atlas_id}-path>");
+	} else {
+	    if ($transform_direction eq 'i')
+	      {
+		
+		$metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option}]"; 
 
+                $ref_skull_mask   = "$canon_image_dir/${atlas_id}_mask.nii"; # a canonical reference mask
+		$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x2 -t SyN[$syn_setting,1,0.5] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1"; 
+		$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,1] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1"; 
+	        $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
+
+	      }
+           elsif ($transform_direction eq 'f')
+	     {
+	       $metrics = $metrics . " -m ${metric}[${channel_path},${atlas_image_path},${channel_option}]"; 
+               $ref_skull_mask   = $norm_mask_path;
+	       $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x2 -t SyN[$syn_setting,1,0.5] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -u 1"; 
+	       $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,1] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -u 1"; 
+               $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -u 1 -z 1"; 
+	     }
+	}
+    }
 #long run
- $my_options = "-c $diffsyn_iter -s 0x0x0x0 -f 8x4x2x1 -t SyN[$syn_setting,1,0.5] -x $ref_skull_mask -r $affine_xform -a 0"; 
- $my_options = "-c $diffsyn_iter -s 0x0x0x0 -f 8x4x2x1 -t SyN[$syn_setting,3,1] -x $ref_skull_mask -r $affine_xform -a 0"; 
+#will need to flip the order of the masks in -x for forwd and inverse
+
+
 
 #short run
 # $my_options = "-c $diffsyn_iter -s 0x0x0x0 -f 8x4x2x1 -t SyN[$syn_setting,1,0.5] -x $ref_skull_mask -r $affine_xform -a 0"; 
   
     #/////// define ants transform command including all options ///////
-   # my $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -o $result_transform_path_base $other_options $my_options";
+   
 #go paralell alx
     my $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -o $result_transform_path_base $my_options";
 

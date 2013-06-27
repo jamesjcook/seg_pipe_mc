@@ -145,9 +145,12 @@ $HfResult->set_value('ANTS-diff-SyN-metric',$ANTSDIFFSyNMETRIC);
 ###
 # check channels and runnos and nchannels
 ###
+# runnumbers is the list of runnumber specefied
+# channel list is the "queue" of channel identifiers specified with -q
+# nchannels is an override to the number of channels to register (-m)
 my @tmparray=();
 # possible error conditions, 
-# size of runno_list < size of channel_list 
+# size of runno_list < size of channel_list (eg you have specified more channels in -q than the list of runnumbers.)
 if ( $#runno_list<$#channel_list){
     print("WARNING: More channels specified than provided, guessing correct number\n"); # if ($debug_val >=35);
     for (my $run=0;$run<=$#runno_list;$run++) {
