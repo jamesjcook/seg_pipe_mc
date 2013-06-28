@@ -22,9 +22,17 @@
 use strict;
 use List::Util qw(min);
 #require Exporter; 
+my $GOODEXIT = 0;
+my $BADEXIT  = 1;
+my $ERROR_EXIT=$BADEXIT;
 use Env qw(PIPELINE_SCRIPT_DIR);
-use lib "$PIPELINE_SCRIPT_DIR/pipeline_utilities"; # look in here for the requirements
 # generic incldues
+use Env qw(RADISH_PERL_LIB);
+if (! defined($RADISH_PERL_LIB)) {
+    print STDERR "Cannot find good perl directories, quiting\n";
+    exit $ERROR_EXIT;
+}
+use lib split(':',$RADISH_PERL_LIB);
 require Headfile;
 require pipeline_utilities;
 require retrieve_archived_data;
@@ -54,7 +62,8 @@ my $ANTSAFFINEMETRIC = "MI"; # could be any of the ants supported metrics, this 
 my $ANTSDIFFSyNMETRIC = "CC"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by chaning the naem of this in the headfile, and looking up those different variable names in the pipe.
 #$nchannels = 2; # number of channels to include in metrics, be nice to use all channels, but thats for the future, will have to edit lines containing this to be $#channel_list instead, to use all possible channels. perhaps we should do some kindof either or, another option flag telling the number of specified channels to use for the registration.
 # this has been set up as the -m option, will remain undocumented for now. 
-my  $NIFTI_MFUNCTION = 'civm_to_nii_flip';  
+my  $NIFTI_MFUNCTION = 'civm_to_nii';  
+# flip functionality put into civm_to_nii
 # an mfile function in matlab directory, but no .m here 
 # _may version includes flip_z (_feb does not)
 # flip version can flip nifti's 

@@ -28,6 +28,7 @@ $BADEXIT  = 1;
 my $debug_val = 5;
 my $g_engine_ants_app_dir;
 my $g_engine_matlab_app;
+my $g_engine_matlab_opts;
 my $g_engine_fsl_dir;
 
 # ------------------
@@ -59,15 +60,16 @@ sub set_environment {
   $HfResult->set_value('dir-whs-images-default', $std_whs_images_dir);
 
   $HfResult->set_value('engine-app-matlab'       , $g_engine_matlab_app);
+  $HfResult->set_value('engine-app-matlab-opts'  , $g_engine_matlab_opts);
   $HfResult->set_value('engine-app-ants-dir'     , $g_engine_ants_app_dir);
-  $HfResult->set_value('engine-app-fsl-dir'       , $g_engine_fsl_dir);
+  $HfResult->set_value('engine-app-fsl-dir'      , $g_engine_fsl_dir);
   
 }
 
 # ------------------
 sub get_ants_metric_opts {
 # ------------------
-  use Env qw(PIPELINE_HOSTNAME PIPELINE_HOME BIGGUS_DISKUS);
+  use Env qw(PIPELINE_HOSTNAME PIPELINE_HOME BIGGUS_DISKUS WKS_SETTINGS);
   if (! defined($PIPELINE_HOSTNAME)) { error_out ("Environment variable PIPELINE_HOSTNAME must be set."); }
   if (! defined($PIPELINE_HOME)) { error_out ("Environment variable PIPELINE_HOME must be set."); }
   if (! defined($BIGGUS_DISKUS)) { error_out ("Environment variable BIGGUS_DISKUS must be set."); }
@@ -75,7 +77,7 @@ sub get_ants_metric_opts {
   if (!-w $BIGGUS_DISKUS)      { error_out ("unable to write to $BIGGUS_DISKUS"); }
   if (!-d $PIPELINE_HOME)      { error_out ("unable to find $PIPELINE_HOME"); }
 
-  my $ants_metrics_dir = "$PIPELINE_HOME/dependencies";
+  my $ants_metrics_dir = "$WKS_SETTINGS/ants";
   if (! -e $ants_metrics_dir) {
      error_out ("$ants_metrics_dir does not exist.");
   }
@@ -98,16 +100,16 @@ sub get_engine_dependencies {
 # ------------------
 # finds and reads engine dependency file 
   my ($runno) = @_;
-  use Env qw(PIPELINE_HOSTNAME PIPELINE_HOME BIGGUS_DISKUS);
+  use Env qw(PIPELINE_HOSTNAME PIPELINE_HOME BIGGUS_DISKUS WKS_SETTINGS);
   if (! defined($PIPELINE_HOSTNAME)) { error_out ("Environment variable PIPELINE_HOSTNAME must be set."); }
   if (! defined($PIPELINE_HOME)) { error_out ("Environment variable PIPELINE_HOME must be set."); }
   if (! defined($BIGGUS_DISKUS)) { error_out ("Environment variable BIGGUS_DISKUS must be set."); }
-  if (!-d $BIGGUS_DISKUS)      { error_out ("unable to find $BIGGUS_DISKUS"); }
-  if (!-w $BIGGUS_DISKUS)      { error_out ("unable to write to $BIGGUS_DISKUS"); }
-  if (!-d $PIPELINE_HOME)      { error_out ("unable to find $PIPELINE_HOME"); }
+  if (!-d $BIGGUS_DISKUS)        { error_out ("unable to find $BIGGUS_DISKUS"); }
+  if (!-w $BIGGUS_DISKUS)        { error_out ("unable to write to $BIGGUS_DISKUS"); }
+  if (!-d $PIPELINE_HOME)        { error_out ("unable to find $PIPELINE_HOME"); }
 
 
-  my $engine_constants_dir = "$PIPELINE_HOME/dependencies";
+  my $engine_constants_dir = "$WKS_SETTINGS/engine_deps";
   if (! -e $engine_constants_dir) {
      error_out ("$engine_constants_dir does not exist.");
   }
@@ -122,9 +124,13 @@ sub get_engine_dependencies {
      error_out("Unable to read engine constants from headfile form file $engine_constants_path\n");
   }
   $g_engine_matlab_app   = $Engine_constants->get_value('engine_app_matlab');
+  $g_engine_matlab_opts  = $Engine_constants->get_value('engine_app_matlab_opts');
+  print("engine file: $engine_file\n");
+  print("mat opts : $g_engine_matlab_opts\n");
   $g_engine_ants_app_dir = $Engine_constants->get_value('engine_app_ants_dir');
   $g_engine_fsl_dir      = $Engine_constants->get_value('engine_app_fsl_dir');
   if (! -e $g_engine_matlab_app)   { error_out ("unable to find $g_engine_matlab_app");} 
+  if (! defined $g_engine_matlab_opts)   { error_out ("unable to find g_engine_matlab_opts");} 
   if (! -e $g_engine_ants_app_dir) { error_out ("unable to find $g_engine_ants_app_dir");  } 
 
   my $engine_whs_labels_dir  = $Engine_constants->get_value('engine_waxholm_labels_dir');
