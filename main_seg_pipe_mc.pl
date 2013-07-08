@@ -15,11 +15,6 @@
 
 
 
-
-use File::Basename;
-my $script_path = dirname(__FILE__);
-#use Cwd 'abs_path';
-#my $script_path = abs_path($0);
 #package seg_pipe_mc;
 
 use strict;
@@ -30,12 +25,15 @@ my $BADEXIT  = 1;
 my $ERROR_EXIT=$BADEXIT;
 use Env qw(PIPELINE_SCRIPT_DIR);
 # generic incldues
+use Cwd qw(abs_path);
+use File::Basename;
+use lib dirname(abs_path($0));
 use Env qw(RADISH_PERL_LIB);
 if (! defined($RADISH_PERL_LIB)) {
     print STDERR "Cannot find good perl directories, quiting\n";
     exit $ERROR_EXIT;
 }
-use lib $script_path;
+
 use lib split(':',$RADISH_PERL_LIB);
 require Headfile;
 require pipeline_utilities;
