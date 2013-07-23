@@ -1,6 +1,6 @@
 #!/usr/local/pipeline-link/perl
 # create_labels.pm 
-
+ 
 # based on label_brain_0.sh by abb
 # 2012/03/28 james cook, modified to chang whs to atlas, since we can use any 
 #            atlas, we shouldnt be calling it whs now should we....
@@ -207,7 +207,7 @@ sub create_multi_channel_diff_syn_transform {
 
     my $my_options ="";
 #long run
-    my $diffsyn_iter= "3000x3000x3000x3000"; #matt please change bact to 3000x3000
+    my $diffsyn_iter= "3000x3000x3000x3000"; 
 #short run
  $diffsyn_iter="3000x3000x3000x3000" ; # matt change back to "3000x3000x3000";
  $diffsyn_iter="3000x3000x3000";
@@ -236,9 +236,10 @@ for(my $chindex=0;$chindex<$nchannels;$chindex++) {
 		$metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option}]"; 
 
                 $ref_skull_mask   = "$canon_image_dir/${atlas_id}_mask.nii"; # a canonical reference mask
-		$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x2 -t SyN[$syn_setting,1,0.5] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1"; 
-		$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,1] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1"; 
-	        $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
+		#$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x2 -t SyN[$syn_setting,1,0.5] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1"; 
+		#$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,1] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1"; 
+	        #$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
+                $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x2 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
 
 	      }
            elsif ($transform_direction eq 'f')

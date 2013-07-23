@@ -113,6 +113,9 @@ dual contrast, with existing data using non standard contrasts.
                        -l /pipe_home/whs_references/phant_labels \\
                        -q T1,T2W \\
                        -eb 01111111 TESTDATA TESTDATA2 11.test.01 11.test.01
+seg_pipe_mc -a DTI -i /Volumes/pipe_home/whs_references/whs_canonical_images/dti_average/ \
+                   -l /Volumes/pipe_home/whs_references/whs_labels/dti_average/ \
+                   -z -m 2 -q dwi,fa N50883_m0 N50883_m0 13.calakos.01 13.calakos.01
 
 "; 
   exit ( $BADEXIT );
@@ -330,7 +333,7 @@ sub command_line_mc {
   my $atlas_id = "DEFAULT";
   if (defined $options{i}) {  # -i
      $atlas_images_dir = $options{i};
-     $cmd_line = "-i $atlas_labels_dir " . $cmd_line;
+     $cmd_line = "-i $atlas_images_dir " . $cmd_line;
      if (defined $options{a}) { # -a 
 	 $atlas_id = $options{a};
 	 $cmd_line = "-a $atlas_id " . $cmd_line;

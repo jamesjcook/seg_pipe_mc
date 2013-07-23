@@ -186,7 +186,7 @@ if ($#channel_list<$nchannels-1) { # $# is max_index of 0 indexed array, so we i
 	$nchannels=$#channel_list+1;
 } 
 if ($debug_val>=35)
-{print("Registering using metrics for the frist $nchannels channels.\n") ; sleep(3);}
+{print("Registering using metrics for the first $nchannels channels.\n") ; sleep(3);}
 
 ###
 # find the ANTS metric weights in opts file
