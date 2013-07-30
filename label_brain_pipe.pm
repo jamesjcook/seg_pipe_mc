@@ -5,6 +5,7 @@
 # in an archive ready dirctory.
 # 
 # CHANGE LOG
+# 2013/07/30 james cook, renamed flip variable to rotate.
 # 2012/04/02 james cook, started adding coilbias correction to help support in-vivo scans
 # 2012/03/28 james cook, did pile of modifications for using arbitrary atlas and channels
 #            have also modified the functions this depends on, work in progress.
@@ -15,7 +16,7 @@
 
 
 #package label_brain_pipe; # causes trouble when we label this as label_brain_pipe, not sure why, could be that its a same name as function problem.
-my $VERSION = "2012/03/28";
+my $VERSION = "20130730";
 my $NAME = "Alex Badea Brain Segmentation Method";
 my $DESC = "warps atlas labels";
 my $PM = "label_brain_pipe.pm";
@@ -52,8 +53,8 @@ BEGIN {
 # ------------------
 sub label_brain_pipe {
 # ------------------
-# $flip_y, $flip_z,
-  my ($do_bits, $Hf_out) = @_; # flip_y and flipy_z should be put in the headfile and pulled ou there to match form with the other functions
+# $flip_x, $flip_z,
+  my ($do_bits, $Hf_out) = @_; # flip_x and flipy_z should be put in the headfile and pulled ou there to match form with the other functions
   log_info ("$PM name: $NAME");
   log_info ("$PM desc: $DESC");
   log_info ("$PM version: $VERSION");

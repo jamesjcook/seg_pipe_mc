@@ -2,10 +2,10 @@
 
 # convert_all_to_nifti.pm 
 
-# created 2010/11/02 Sally Gewalt CIVM
+# modified 20130730 james cook, renamed flip_y to flip_x to be more accurate.
 # modified 2012/04/27 james cook. Tried to make this generic will special handling for dti from archive cases.
 # calls nifti code that can get dims from header
-
+# created 2010/11/02 Sally Gewalt CIVM
 use strict;
 require convert_to_nifti_util;
 my $debug_val = 5;
@@ -17,10 +17,10 @@ sub convert_all_to_nifti {
 # convert the source image volumes used in this SOP to nifti format (.nii)
 # could use image name (suffix) to figure out datatype
   my ($go, $Hf_out)  = @_;
-  my $flip_y=$Hf_out->get_value('flip_y');
+  my $flip_x=$Hf_out->get_value('flip_x');
   my $flip_z=$Hf_out->get_value('flip_z');
   # dimensions are for the SOP acquisition. 
-  my $nii_raw_data_type_code = 4; # civm .raw  (short - big endian)
+  my $nii_raw_data_type_code = 512; # civm .raw  (unsigned short - big endian) 
   my $nii_i32_data_type_code = 8; # .i32 output of t2w image set creator 
   my $ants_app_dir           = $Hf_out->get_value('engine-app-ants-dir');
   my @channel_array=split(',',$Hf_out->get_value('runno_ch_commalist'));
@@ -49,7 +49,7 @@ sub convert_all_to_nifti {
 	  log_info( "  Specimen id read from $ch_id input scan $runno headfile: $input_specid\n");
 	  $Hf_out->set_value("specid_${ch_id}"  , $input_specid);
 
-	  $nii_ch_id=convert_to_nifti_util($go, $ch_id, $nii_raw_data_type_code, $flip_y, $flip_z, $Hf_out, $runno_Hf); # .raw 
+	  $nii_ch_id=convert_to_nifti_util($go, $ch_id, $nii_raw_data_type_code, $flip_x, $flip_z, $Hf_out, $runno_Hf); # .raw 
       } elsif ( $ch_id =~ m/(adc)|(dwi)|(e1)|(fa)/){  # should move this to global options, dtiresearchchannels
 	  my $input_headfile = $runno_dir . "/" . "tensor${runno}.headfile";
 	  my $runno_Hf = new Headfile ('ro', $input_headfile);
@@ -87,13 +87,13 @@ sub convert_all_to_nifti {
 	  my ($xdim,$ydim,$zdim) =(0,0,0);#### should get this from nii.hdr in matlab
 	  #$nii_datatype_code=$nii_raw_data_type_code;
 	  my ($xvox,$yvox,$zvox) =(0,0,0);#### should get this from nii.hdr in matlab
-#	  $flip_y=0;
+#	  $flip_x=0;
 #	  $flip_z=0;
 	  my $sliceselect    = $Hf_out->get_value_like("slice-selection");  # using get_value like is experimental, should be switched to get_value if this fails.
 	  my ($zstart, $zstop);
 	  
 	  my @stringargs = ($src_image_path,$image_prefix,$image_suffix,$dest_nii_path);
-	  my @numargs =    ($xdim, $ydim, $zdim, $nii_raw_data_type_code, $xvox,$yvox,$zvox, $flip_y, $flip_z);
+	  my @numargs =    ($xdim, $ydim, $zdim, $nii_raw_data_type_code, $xvox,$yvox,$zvox, $flip_x, $flip_z);
 
 	  if ( $sliceselect eq "all" || $sliceselect eq "NO_KEY" || $sliceselect eq "UNDEFINED_VALUE" || $sliceselect eq "EMPTY_VALUE" ) { 
 	    # do nothing with zstart, zstop
@@ -108,7 +108,7 @@ sub convert_all_to_nifti {
 	  my $args = "'".join('\', \'',@stringargs)."',".join(', ',@numargs);
 	  my $cmd =  make_matlab_command ($NIFTI_MFUNCTION, $args, "$ch_id\_", $Hf_out); 
 	  #INSERT flip nifti code here abouts, maybe with flip nii function
-#	  my $cmd="$ants_app_dir/PermuteFlipImageOrientationAxes 3 $in_file $dest_nii_path 0 1 2 0 $flip_y $flip_z 1"; 
+#	  my $cmd="$ants_app_dir/PermuteFlipImageOrientationAxes 3 $in_file $dest_nii_path 0 1 2 0 $flip_x $flip_z 1"; 
 	  #PermuteFlipImageOrientationAxes ImageDimension  inputImageFile  outputImageFile xperm yperm {zperm}  xflip yflip {zflip}  {FlipAboutOrigin}
 #	  my $cmd = "cp $in_file $dest_nii_path";
 

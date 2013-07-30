@@ -1,6 +1,8 @@
 #!/usr/local/pipeline-link/perl
 
 # skull_strip_all.pm
+# 2013/07/30 james cook, modified skull strip calls to allow more , 
+#            functions through
 # 2012/05/10 james cook, added function to use a ported labelset
 #            that registeres the atlas mask to the generated mask. 
 # 2012/03/27 james cook, fixed up variables to match new convetion, 
@@ -9,7 +11,7 @@
 # slg made this up based on abb 11/11/09 v of mask_Ts_aug5.m 
 # created 2009/11/12 Sally Gewalt CIVM 
 
-my $VERSION = "2012/05/10";
+my $VERSION = "20130730";
 my $NAME = "Alex Badea skull strip Method";
 my $DESC = "matlab and ants";
 my $ggo = 1;
@@ -146,8 +148,13 @@ sub make_skull_mask {
 
   my $nii_less_path = remove_dot_suffix($template_path);
   my $mask_path     = "${nii_less_path}_mask\.nii";
-
-  my $args = "\'$template_path\', $dim_divisor, \'$mask_path\'";
+  my $num_morphs=5;
+  my $morph_radius=2;
+  my $mask_threshold=-2; # -2 use histogram based 
+                         # -1 use imagej (like evan and his dti pipe)
+                         # 0-100 use threshold_zero 0-100, 
+                         # 100-inf is set threshold.
+  my $args = "\'$template_path\', $dim_divisor, $mask_threshold, \'$mask_path\',$num_morphs , $morph_radius";
   my $unique_id = "make_$PID\_";
   my $cmd =  make_matlab_command ($SKULL_MASK_MFUNCTION, $args, $unique_id, $Hf);
   if (! execute($ggo, "make_skull_mask", $cmd) ) {

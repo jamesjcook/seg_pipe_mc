@@ -19,7 +19,7 @@ BEGIN {
 }
 # this use vars line telsl us which variables we're going to use in this module.
 use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT ); #$test_mode
-$PIPELINE_VERSION = "2012/10/20";
+$PIPELINE_VERSION = "2013/07/30";
 $PIPELINE_NAME = "Multiple contrast Brain Seg Pipeline With hopefully arbitrary channels"; 
 $PIPELINE_DESC = "CIVM MRI mouse brain image segmentation using multiple contrasts";
 $HfResult = "unset";

@@ -6,6 +6,7 @@
 # This should only set up and check environment, 
 # and then call another perl module to do real segmentation specific work.
 #
+# 2013/07/30 james, updated flip_y code to say flip-x which is what had really been going on all along, rather we rotated on the z dimension, changing both y and x..
 # 2012/04/03 james, updated lots of things, specifically changed hard coded references to whs to atlas, and made channel inputs arbitrary 
 # 2011/01/21 slg command line options to change default locations: dir_whs_labels_default, dir_whs_images_default
 # 2010/11/02 updates for handling voxel size info from header 
@@ -85,18 +86,19 @@ my %arghash=%{$arg_hash_ref};
 my @runno_list                                                 = split(',',$arghash{runnolist});
 my @channel_list                                               = split(',',$arghash{channel_order});
 my ($subproject_source, $subproject_result) = split( ',',$arghash{projlist});
-my $flip_y = $arghash{flip_y};                     # -y 
+my $flip_x = $arghash{flip_x};                     # -y 
 my $flip_z = $arghash{flip_z};                     # -z
+my $slice_select=$arghash{sliceselect};            # -s #-#
 my $noise_reduction = $arghash{noise_reduction};   # -n
 my $coil_bias = $arghash{coil_bias};               # -c
 my $transform_direction = $arghash{transform_direction};
 my $pull_source_images = $arghash{data_pull};      # -e
-my $extra_runno_suffix = $arghash{extra_runno_suffix}; # -s 
-my $do_bit_mask = $arghash{bit_mask};              # -b
-my $atlas_labels_dir = $arghash{atlas_labels_dir}; # -l
+my $extra_runno_suffix = $arghash{extra_runno_suffix}; # --suffix something 
+my $do_bit_mask = $arghash{bit_mask};              # -b 11111111
+my $atlas_labels_dir = $arghash{atlas_labels_dir}; # -l /somedir/
 $nchannels = $arghash{registration_channels};      # -m this is subject to change
 my $atlas_id = $arghash{atlas_id};                 # -a this is subject to change
-my $atlas_images_dir = $arghash{atlas_images_dir}; # -i
+my $atlas_images_dir = $arghash{atlas_images_dir}; # -i /somedir/
 my $port_atlas_mask=$arghash{port_atlas_mask};     # -p 
 my $use_existing_mask=$arghash{use_existing_mask};     # -k
 my $cmd_line = $arghash{cmd_line};
@@ -244,11 +246,11 @@ print
     ".join(',',@runno_list).",
     subproj source: $subproject_source, 
     subproj result: $subproject_result, 
-    pull=$pull_source_images, flip_y=$flip_y, flip_z=$flip_z, noise_reduction:$noise_reduction, coil_bias=$coil_bias,
+    pull=$pull_source_images, flip_x=$flip_x, flip_z=$flip_z, noise_reduction:$noise_reduction, coil_bias=$coil_bias,
     registration_channels:$nchannels,
     suffix=$extra_runno_suffix 
     port_atlas_mask=$port_atlas_mask,
-    use_existing__mask=$use_existing_mask,
+    use_existing_mask=$use_existing_mask,
     domask=$do_bit_mask
     atlas_labels_dir=$atlas_labels_dir
     atlas_images_dir=$atlas_images_dir
@@ -278,8 +280,9 @@ $HfResult->set_value('runno_ch_commalist'      , join(',',@channel_list));
 $HfResult->set_value('runno_commalist'         , join(',',@runno_list));
 $HfResult->set_value('subproject_source'       , $subproject_source);
 $HfResult->set_value('subproject_result'       , $subproject_result);
-$HfResult->set_value('flip_y'                  , $flip_y);
+$HfResult->set_value('flip_x'                  , $flip_x);
 $HfResult->set_value('flip_z'                  , $flip_z);
+$HfResult->set_value('slice-selection'            , $slice_select);
 $HfResult->set_value('noise_reduction'         , $noise_reduction);
 $HfResult->set_value('coil_bias'               , $coil_bias);
 $HfResult->set_value('port_atlas_mask'         , $port_atlas_mask);
@@ -310,7 +313,7 @@ for my $ch_id (@channel_list) {
     #locate_data_util($pull_source_images, "${ch_id}" ,$runno, $HfResult);
 }
 
-# $flip_y, $flip_z,
+# $flip_x, $flip_z,
 label_brain_pipe($do_bit_mask, $HfResult);  # --- pipeline work is here
 
 # --- done

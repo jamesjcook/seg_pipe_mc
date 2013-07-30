@@ -13,7 +13,7 @@
 #                   based on radish pipeline
 
 # be sure to change version:
-my $VERSION = "12/04/12";
+my $VERSION = "20130730";
 
 #use File::Path;
 use strict;
@@ -62,8 +62,11 @@ usage:
                       NOTE: must be set for the bit mask value to have meaning. 
      -n  type       : Noise Correction, must specify type ex -n SUSAN, OR -n Bilateral,
                       NOTE: must be set for the bit mask value to have meaning. 
-     -y             : Flip input Y, all input images will be flipped in y before use (this happens before niftify).
-     -z             : Flip input Z, all input images will be flipped in z before use (this happens before niftify).
+     -x             : rorate to flip x, all input images will be rotated along y to flip x before use (this happens before niftify).
+     -z             : rotate to flip z, all input images will be rotated along x to flip z before use (this happens before niftify).
+     -s <n1-n2>     : slice crop, value 1 is the first slice include, value 2 is the last slice included. 
+                      Can be used to do a Z flip(not rotate) by using bigger number first.
+                      ex 50-450     would only include slices 50-450
      -p             : Port atlas mask. Will generate a skull mask with the input dataset and use that to guide a 
                       registration of the atlas mask. The registered atlas mask will be used for skull stripping.
      -k             : Advanced option for masking,
@@ -71,7 +74,7 @@ usage:
      -m  channels   : Channels considered for registration, Default 2, if more than this number 
                       of channels is specified they will not be used for registration, and will
                       just have the transforms applied. 
-     -s  suffix     : Optional suffix for output directory, 
+     --suffix suffix: Optional suffix for output directory, 
                       WARNING: letters, numbers or underscore ONLY([a-zA-Z_0-9]). 
      -l  dir        : Label directory, default is set in setup files. 
                       Directory must contain <atlas_id>_labels.nii files, use -a (see below).
@@ -125,7 +128,7 @@ sub command_line_mc {
   if ($#ARGV+1 == 0) { usage_message_mc("");}
   print "unprocessed args: @ARGV\n" if ($debug_val >=35);;
   my %options = ();
-  if (! getopts('a:b:cd:ei:kl:m:n:opq:s:tyz', \%options)) {
+  if (! getopts('a:b:cd:ei:kl:m:n:opq:s:txz-:', \%options)) {
     print "Problem with command line options.\n";
     usage_message_mc("problem with getopts");
   } 
@@ -184,7 +187,6 @@ sub command_line_mc {
   if (defined $options{e}) {  # -e
      $data_pull = 0;
      push @singleopts,'e';
-     #$cmd_line =  "-e " . $cmd_line;
      print STDERR "  No image data to be copied from archive. Data should be available. (-e)\n" if ($debug_val>=10);
   } else {
      $data_pull = 1;
@@ -232,25 +234,25 @@ sub command_line_mc {
   print "testmode:$test_mode\n" if ($debug_val>=45); 
 
   
-  my $flip_y = 0;
-  if (defined $options{y}) {  # -y
-     $flip_y = 1;
-     push @singleopts,'y';
-     print STDERR "  Flipping input images in y. (-y)\n" if ($debug_val>=10);
+  my $flip_x = 0;
+  if (defined $options{x}) {  # -x
+     $flip_x = 1;
+     push @singleopts,'x';
+     print STDERR "  Rotating input images for x. (-x)\n" if ($debug_val>=10);
   } else {
-     $flip_y = 0;
-     print STDERR "  Not flipping input images in y.\n" if ($debug_val>=10);
+     $flip_x = 0;
+     print STDERR "  Not rotating input images for x.\n" if ($debug_val>=10);
   }
-  $arg_hash{flip_y}=$flip_y;
+  $arg_hash{flip_x}=$flip_x;
 
   my $flip_z ;
   if (defined $options{z}) {  # -z
      $flip_z = 1;
       push @singleopts,'z';
-     print STDERR "  Flipping input images in z. (-z)\n" if ($debug_val>=10);
+     print STDERR "  Rotating input images for z. (-z)\n" if ($debug_val>=10);
   } else {
      $flip_z = 0;
-     print STDERR "  Not flipping input images in z.\n" if ($debug_val>=10);
+     print STDERR "  Not Rotating input images for z.\n" if ($debug_val>=10);
   }
   $arg_hash{flip_z}=$flip_z;
   
@@ -279,20 +281,10 @@ sub command_line_mc {
   }
   $arg_hash{transform_direction}=$transform_direction;
 
-
-
-  my $extra_runno_suffix = "--NONE";
-  if (defined $options{s}) {  # -s
-     $extra_runno_suffix = $options{s};
-     $cmd_line = " -s $extra_runno_suffix " . $cmd_line;
-     print STDERR "  Adding your suffix to result runno: $extra_runno_suffix (-s)\n" if ($debug_val>=10);
-  }
-  $arg_hash{extra_runno_suffix}=$extra_runno_suffix;
-
   my $registration_channels=2;
   if (defined $options{m}) {  # m
      $registration_channels = $options{m};
-     $cmd_line =  " -m $registration_channels " . $cmd_line ;
+     $cmd_line =  "-m $registration_channels " . $cmd_line ;
      print STDERR "  Registration channels specified, will use up to ${registration_channels} channels. (-m)\n";
   } else {
      print STDERR "  Registration channels not specified, using up to 2.\n";
@@ -341,13 +333,45 @@ sub command_line_mc {
   }
   $arg_hash{atlas_images_dir}=$atlas_images_dir;
   $arg_hash{atlas_id}=$atlas_id;
-  $cmd_line = "-" . join('',@singleopts) . " " . $cmd_line;
 
+
+  my $sliceselect;
+  if (defined $options{s}) {  # -s
+      $sliceselect = $options{s};
+      $cmd_line =  "-s $sliceselect " . $cmd_line;
+      print STDERR "  Only slices $sliceselect will be used(-s)\n";
+  }
+  else {
+      $sliceselect = "all";
+      print STDERR "  Will use all slices.\n";
+  }
+  $arg_hash{sliceselect}=$sliceselect;
+
+
+  if (defined $options{'-'}) { # extra ooptsion processing
+      my $extra_runno_suffix = "--NONE";  
+      my @extended_opts=split(',',$options{'-'});
+      for my $opt (@extended_opts) {
+	  $options{'-'}=$opt;
+	  if ($options{'-'} =~ /^suffix=.*/) {  # --suffix
+	      ($options{'-'},$extra_runno_suffix)=split('=',$options{'-'});
+	      $extra_runno_suffix=~s/(?:^ +)||(?: +$)//g ;
+#	      $extra_runno_suffix = $options{'-'};
+	      $cmd_line = " -s $extra_runno_suffix " . $cmd_line;
+	      print STDERR "  Adding your suffix to result runno: $extra_runno_suffix (-s)\n" if ($debug_val>=10);
+	  } else { 
+	      error_out("Un recognized extended option -".$options{'-'}."\n");
+	  }
+      }
+      $arg_hash{extra_runno_suffix}=$extra_runno_suffix;
+  } 
+
+  $cmd_line = "-" . join('',@singleopts) . " " . $cmd_line;  
    for my $k (keys %arg_hash) {
        print "$k: $arg_hash{$k}\n" if ($debug_val >=35);
    }
   $arg_hash{cmd_line}=$cmd_line;
-  return (\%arg_hash); # makes sure to return a ref, this makes live easier.
+  return (\%arg_hash); # makes sure to return a ref, this makes life easier.
 }
 
 1;
