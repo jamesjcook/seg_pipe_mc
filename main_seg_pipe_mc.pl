@@ -93,7 +93,8 @@ my $noise_reduction = $arghash{noise_reduction};   # -n
 my $coil_bias = $arghash{coil_bias};               # -c
 my $transform_direction = $arghash{transform_direction};
 my $pull_source_images = $arghash{data_pull};      # -e
-my $extra_runno_suffix = $arghash{extra_runno_suffix}; # --suffix something 
+my $extra_runno_suffix = $arghash{extra_runno_suffix}; # --suffix=something 
+my $threshold_code     = $arghash{threshold_code};  # --threshold=number  
 my $do_bit_mask = $arghash{bit_mask};              # -b 11111111
 my $atlas_labels_dir = $arghash{atlas_labels_dir}; # -l /somedir/
 $nchannels = $arghash{registration_channels};      # -m this is subject to change
@@ -124,6 +125,7 @@ if ($extra_runno_suffix eq "--NONE") {
   print "Extra runno suffix info provided = $extra_runno_suffix\n";
   $nominal_runno = $runno_list[0] . $extra_runno_suffix; 
 }
+
 set_environment($nominal_runno); # opens headfile, log file, loads the setting variables from dependency files into the headfile. 
 
 $HfResult->set_value('program_arguments',$cmd_line);
@@ -287,7 +289,7 @@ $HfResult->set_value('noise_reduction'         , $noise_reduction);
 $HfResult->set_value('coil_bias'               , $coil_bias);
 $HfResult->set_value('port_atlas_mask'         , $port_atlas_mask);
 $HfResult->set_value('use_existing_mask'       , $use_existing_mask);
-
+$HfResult->set_value('threshold_code'          , $threshold_code);
 #get specid from data headfiles?
 $HfResult->set_value('specid'  , "NOT_HANDLED_YET");
 # --- set runno info in HfResult

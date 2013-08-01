@@ -73,9 +73,14 @@ usage:
                       use existing mask file named \"runno_channel1_manual_mask.nii\" in the work directory on disk.
      -m  channels   : Channels considered for registration, Default 2, if more than this number 
                       of channels is specified they will not be used for registration, and will
-                      just have the transforms applied. 
-     --suffix suffix: Optional suffix for output directory, 
+                      have just the transforms applied. 
+     --suffix=suffix: Optional suffix for output directory, 
                       WARNING: letters, numbers or underscore ONLY([a-zA-Z_0-9]). 
+     --threshold=theshold_code
+                    : the threshold_code to use in the matlab strip_mask.m function
+                      100-inf manual value
+                      1-99 threshold-zero from derivative histogram
+                      -1  manual selection using imagej
      -l  dir        : Label directory, default is set in setup files. 
                       Directory must contain <atlas_id>_labels.nii files, use -a (see below).
      -i  dir        : Registration Target, default is set in setup files. 
@@ -347,23 +352,29 @@ sub command_line_mc {
   }
   $arg_hash{sliceselect}=$sliceselect;
 
-
+  $arg_hash{threshold_code}=2;
   if (defined $options{'-'}) { # extra ooptsion processing
       my $extra_runno_suffix = "--NONE";  
       my @extended_opts=split(',',$options{'-'});
+
       for my $opt (@extended_opts) {
 	  $options{'-'}=$opt;
 	  if ($options{'-'} =~ /^suffix=.*/) {  # --suffix
 	      ($options{'-'},$extra_runno_suffix)=split('=',$options{'-'});
 	      $extra_runno_suffix=~s/(?:^ +)||(?: +$)//g ;
 #	      $extra_runno_suffix = $options{'-'};
-	      $cmd_line = " -s $extra_runno_suffix " . $cmd_line;
-	      print STDERR "  Adding your suffix to result runno: $extra_runno_suffix (-s)\n" if ($debug_val>=10);
+	      $cmd_line = " --suffix=$extra_runno_suffix " . $cmd_line;
+	      print STDERR "  Adding your suffix to result runno: --suffix=$extra_runno_suffix\n" if ($debug_val>=10);
+	      $arg_hash{extra_runno_suffix}=$extra_runno_suffix;
+	  } elsif ($options{'-'} =~ /^threshold=.*/) {  # --threshold
+	      ($options{'-'},$arg_hash{threshold_code})=split('=',$options{'-'});
+	      $cmd_line = " --threshold=$arg_hash{threshold_code} " . $cmd_line;
+	      print STDERR "  using thrshold_code: --threshold=$arg_hash{threshold_code}\n" if ($debug_val>=10);
 	  } else { 
 	      error_out("Un recognized extended option -".$options{'-'}."\n");
 	  }
       }
-      $arg_hash{extra_runno_suffix}=$extra_runno_suffix;
+
   } 
 
   $cmd_line = "-" . join('',@singleopts) . " " . $cmd_line;  
