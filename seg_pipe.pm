@@ -14,7 +14,7 @@ use strict;
 BEGIN { 
     use Exporter(); 
     @seg_pipe::ISA = qw(Exporter);
-    @seg_pipe::Export = qw();
+#    @seg_pipe::Export = qw();
     @seg_pipe::EXPORT_OK = qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT ); # $test_mode
 }
 # this use vars line telsl us which variables we're going to use in this module.
@@ -100,22 +100,41 @@ sub get_engine_dependencies {
 # ------------------
 # finds and reads engine dependency file 
   my ($runno) = @_;
-  use Env qw(PIPELINE_HOSTNAME PIPELINE_HOME BIGGUS_DISKUS WKS_SETTINGS);
-  if (! defined($PIPELINE_HOSTNAME)) { error_out ("Environment variable PIPELINE_HOSTNAME must be set."); }
-  if (! defined($PIPELINE_HOME)) { error_out ("Environment variable PIPELINE_HOME must be set."); }
+
+
+  use Env qw(PIPELINE_HOSTNAME PIPELINE_HOME BIGGUS_DISKUS WKS_SETTINGS WORKSTATION_HOSTNAME);
+  
   if (! defined($BIGGUS_DISKUS)) { error_out ("Environment variable BIGGUS_DISKUS must be set."); }
   if (!-d $BIGGUS_DISKUS)        { error_out ("unable to find $BIGGUS_DISKUS"); }
   if (!-w $BIGGUS_DISKUS)        { error_out ("unable to write to $BIGGUS_DISKUS"); }
-  if (!-d $PIPELINE_HOME)        { error_out ("unable to find $PIPELINE_HOME"); }
-
-
-  my $engine_constants_dir = "$WKS_SETTINGS/engine_deps";
-  if (! -e $engine_constants_dir) {
-     error_out ("$engine_constants_dir does not exist.");
+  if  ( ! defined($WORKSTATION_HOSTNAME)) { 
+      print("WARNING: obsolete variable PIPELINE_HOSTNAME used.\n");
+  } else { 
+      $PIPELINE_HOSTNAME=$WORKSTATION_HOSTNAME;
   }
-  my $engine_file = join("_","engine","$PIPELINE_HOSTNAME","pipeline_dependencies");
-  my $engine_constants_path = "$engine_constants_dir/$engine_file";
-
+  my $engine_constants_dir ;
+  if ( ! defined($WKS_SETTINGS) ) { 
+      print("WARNING: obsolete variable PIPELINE_HOME used to find dependenceis\n");
+      $engine_constants_dir="$PIPELINE_HOME/dependencies";
+  } else { 
+      $PIPELINE_HOME=$WKS_SETTINGS;
+      $engine_constants_dir="$PIPELINE_HOME/engine_deps";
+  }
+    
+  if (! defined($PIPELINE_HOSTNAME)) { error_out ("Environment variable WORKSTATION_HOSTNAME must be set."); }
+  if (! defined($PIPELINE_HOME)) { error_out ("Environment variable WKS_SETTINGS must be set."); }
+  if (!-d $PIPELINE_HOME)        { error_out ("unable to find $PIPELINE_HOME"); }
+  if (! -d $engine_constants_dir) {
+      error_out ("$engine_constants_dir does not exist.");
+  }
+  my $engine_file =join("_","engine","$PIPELINE_HOSTNAME","dependencies"); 
+  my $engine_constants_path = "$engine_constants_dir/".$engine_file;
+  if ( ! -f $engine_constants_path ) { 
+      $engine_file=join("_","engine","$PIPELINE_HOSTNAME","pipeline_dependencies");
+      $engine_constants_path = "$engine_constants_dir/".$engine_file;
+      print("WARNING: OBSOLETE SETTINGS FILE USED, $engine_file\n")
+  }
+  
   my $Engine_constants = new Headfile ('ro', $engine_constants_path);
   if (! $Engine_constants->check()) {
     error_out("Unable to open engine constants file $engine_constants_path\n");
