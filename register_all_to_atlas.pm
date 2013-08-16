@@ -82,6 +82,8 @@ sub create_transform_to_atlas_channel_id {
 sub apply_atlas_transform 
 # ------------------
 {
+#alex
+#needs no -R , insead --tightest-bounding-box
   my ($to_deform_path_id, $xform_path, $Hf) = @_;
 # ex: apply_atlas_transform(T1-strip-path,path/Affine.txt,$Hf_out);
   my $ants_app_dir = $Hf->get_value('engine-app-ants-dir');
@@ -133,5 +135,6 @@ sub apply_atlas_transform
 
   $Hf->set_value($result_path_id, $result_path);
   $Hf->set_value($result_file_id, $result_file);
+
 
 }

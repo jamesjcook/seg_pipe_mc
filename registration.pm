@@ -38,7 +38,9 @@ sub create_transform {
 # For the T1 call, -v output calls A fixed and B moving.  
       #  --- is this an inverse transform?  -i 0 ?
       my $opts1 = "-i 0 --use-Histogram-Matching --rigid-affine true --MI-option 32x8000 -r Gauss[3,0.5]";
-      my $opts2 = "--number-of-affine-iterations $affine_iter --affine-gradient-descent-option 0.8x0.5x1.e-4x1.e-4 -v";  
+      #my $opts2 = "--number-of-affine-iterations $affine_iter --affine-gradient-descent-option 0.8x0.5x1.e-4x1.e-4 -v";
+     # my $opts2 = "--number-of-affine-iterations $affine_iter --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4 -v --ignore-void-origin "; 
+      my $opts2 = "--number-of-affine-iterations $affine_iter --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4 -v";  
       #$cmd = "$ants_app_dir/ANTS 3 -m CC[$A_path,$B_path,1,4] $opts1 -o $result_transform_path_base $opts2"; #option - but time consuming
       $cmd = "$ants_app_dir/ANTS 3 -m MI[$A_path,$B_path,1,32] $opts1 -o $result_transform_path_base $opts2";
       
@@ -100,7 +102,12 @@ sub apply_affine_transform {
   #/Volumes/alex_home/braindata/whs/T1by2/N31238by2.nii -i /Users/alex/whs/rN32083by2Affine.txt"
 
   my $i_opt = $do_inverse_bool ? '-i' : ''; 
-  my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform_path $result_path -R $warp_domain_path $i_opt $transform_path $interp"; 
+  #my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform_path $result_path -R $warp_domain_path $i_opt $transform_path $interp"; 
+  #alex has to use tightest boundign box for macnamara study - different bounding boxes between ref and mc namara images may be adressed this way - or we learn to change the bounding boxes in nii header
+  my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform_path $result_path $i_opt $transform_path $interp --tightest-bounding-box"; 
+
+  print " \n";
+  print "****applying affine registration:\n $cmd\n";
 
   my @list = split '/', $transform_path;
   my $transform_file = pop @list;
@@ -112,5 +119,6 @@ sub apply_affine_transform {
     error_out("$PM apply_transform: missing transformed result $result_path");
   }
   print "** $PM apply_transform created $result_path\n";
+
 }
 

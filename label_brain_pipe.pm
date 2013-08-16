@@ -74,14 +74,19 @@ sub label_brain_pipe {
   }
 #  sleep(15);
 #step4
+ print("step 4:\n register all to channel 1 \n");
   register_all_to_channel1($register, $Hf_out);
 #step5
+ print("step 5:\n skull stripping \n");
   skull_strip_all($strip, $Hf_out);
 #step6
+ print("step 6 :\n register all to atlas  \n");
   register_all_to_atlas($atlas, $Hf_out); # rigid affine to atlas
 #step7
+print("step 7 :\n create labels  \n");
   create_labels($label, $Hf_out); # diffeo to atlas of the rigid register.
 #step8
+print("step 8 :\n calculate volumes  \n");
   calculate_volumes($volumes, $Hf_out);
 #put in results
   save_favorite_intermediates (1, $Hf_out);
