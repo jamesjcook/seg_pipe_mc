@@ -158,10 +158,20 @@ sub command_line_mc {
   my $projdest=pop @ARGV;
   if ($#ARGV < 0) { usage_message_mc("Missing required argument on command line"); }
   my $projsource=pop @ARGV;
+#  if ($#ARGV < 0) { usage_message_mc("Missing required argument on command line"); }
+#  my $user_id=pop @ARGV;
   my $err;
   # add to the error string unless we have good proj source or dest
   $err ="source project bad format! <$projsource>  " unless( $projsource =~ m/[0-9]{2}[.]\w{1,50}[.][0-9]+/ );
   $err = $err . "destination project bad format!<$projdest>" unless( $projdest =~ m/[0-9]{2}[.]\w{1,50}[.][0-9]+/ );
+#   if ($user_id =~ m/[A-Z][0-9]{5,}[\w]*/x ) { # if user matches a runnumber, assumes its an error.
+#       my $id_warning="WARNING: no id specified on command line !" ;
+#       warn ( $id_warning);
+#       push (@ARGV, $user_id) ; 
+#       $user_id='UNDEFINED';
+#       
+#   }
+#   $arg_hash{user_id}=$user_id;
   error_out("$err") unless( $err eq '' );
 
   $projlist= $projsource . ',' . $projdest ;

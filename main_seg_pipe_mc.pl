@@ -83,8 +83,8 @@ my %arghash=%{$arg_hash_ref};
  foreach my $k (keys %arghash) {
      print "$k: $arghash{$k}\n" if ($debug_val >=35);
  }
-my @runno_list                                                 = split(',',$arghash{runnolist});
-my @channel_list                                               = split(',',$arghash{channel_order});
+my @runno_list     = split(',',$arghash{runnolist});
+my @channel_list   = split(',',$arghash{channel_order});
 my ($subproject_source, $subproject_result) = split( ',',$arghash{projlist});
 my $flip_x = $arghash{flip_x};                     # -y 
 my $flip_z = $arghash{flip_z};                     # -z
@@ -99,6 +99,7 @@ my $do_bit_mask = $arghash{bit_mask};              # -b 11111111
 my $atlas_labels_dir = $arghash{atlas_labels_dir}; # -l /somedir/
 $nchannels = $arghash{registration_channels};      # -m this is subject to change
 my $atlas_id = $arghash{atlas_id};                 # -a this is subject to change
+#my $user_id = $arghash{user_id};
 my $atlas_images_dir = $arghash{atlas_images_dir}; # -i /somedir/
 my $port_atlas_mask=$arghash{port_atlas_mask};     # -p 
 my $use_existing_mask=$arghash{use_existing_mask};     # -k
@@ -307,16 +308,56 @@ for($i=0;$i<=$#runno_list;$i++) {
 }
 
 $HfResult->set_value("nifti_matlab_converter",$NIFTI_MFUNCTION); 
+# foreach cahnnel run function in retrieve_archived_data.pm, will retrieve images and set some headfile keys
+# ${ch_id}[-_]path                 
+# ${ch_id}[-_]-image-padded-digits 
+# ${ch_id}[-_]-image-basename      
+# ${ch_id}[-_]-image-suffix         
 for my $ch_id (@channel_list) {
-    #print("retrieving archive data for channel ${channel_list[$i]}\n");
-    #locate_data($pull_source_images, "${channel_list[$i]}" , $HfResult);
-#    print("retrieving archive data for channel ${ch_id}\n");
     locate_data_util($pull_source_images, "${ch_id}" , $HfResult);
-    #locate_data_util($pull_source_images, "${ch_id}" ,$runno, $HfResult);
 }
 
 # $flip_x, $flip_z,
 label_brain_pipe($do_bit_mask, $HfResult);  # --- pipeline work is here
+
+
+# archivedestination_project_directory_name=13.mcnamara.02
+# archivedestination_unique_item_name=tensorS64487_m0
+# archivesource_computer=crete
+# archivesource_directory=/cretespace
+# archivesource_headfile_creator=Tensor Pipeline 2011/03/02
+# archivesource_item=tensorS64487_m0-DTI-results 
+# archivesource_item_form=directory-set
+my $OUTPUT_FORMAT      = 'txt';
+$HfResult->set_value('U_specid'              , $HfResult->get_value('specid_'.$channel_list[0]));
+$HfResult->set_value('U_db_insert_type'      , "research");
+#   recommended U_params for archive
+$HfResult->set_value('U_parent_runno'        , $runno_list[0]);
+$HfResult->set_value('U_root_runno'          , $runno_list[0]);
+$HfResult->set_value('U_code'                , $subproject_result);
+#$HfResult->set_value('U_civmid'              , $user_id);
+$HfResult->set_value('U_stored_file_format'  , $OUTPUT_FORMAT);
+$HfResult->set_value('U_date'                , $HfResult->now_date_db()); #  "10-05-14 09:30:20"
+$HfResult->set_value('parent_subproject'     , $subproject_source);
+$HfResult->set_value('U_rd_modality'         , "research Segmentaion");
+#   required for archive operation
+$HfResult->set_value('archivesource_headfile_creator' , "$PIPELINE_NAME $PIPELINE_VERSION");
+$HfResult->set_value('archivesource_computer'         , $HfResult->get_value('engine-computer-name') );
+# archive the result-dir content with the dir name like tensorRUNNO...
+my $result_dir =  $HfResult->get_value('dir-result');
+my $path = defile($result_dir);
+my $last_dir = depath($result_dir);
+$HfResult->set_value('archivesource_item_form' , "directory-set");
+$HfResult->set_value('archivesource_item'      , $last_dir);
+$HfResult->set_value('archivesource_directory' , $path );
+$HfResult->set_value('archivedestination_unique_item_name'      , $nominal_runno);
+$HfResult->set_value('archivedestination_project_directory_name', $subproject_result);
+
+
+
+
+
+
 
 # --- done
 my $dest    = $HfResult->get_value('dir-result');
