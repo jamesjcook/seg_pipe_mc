@@ -64,6 +64,7 @@ usage:
                       NOTE: must be set for the bit mask value to have meaning. 
      -x             : rorate to flip x, all input images will be rotated along y to flip x before use (this happens before niftify).
      -z             : rotate to flip z, all input images will be rotated along x to flip z before use (this happens before niftify).
+     -r <n1:n2>     : rolling value to be used on the convert to nifti step, x:y roll. 
      -s <n1-n2>     : slice crop, value 1 is the first slice include, value 2 is the last slice included. 
                       Can be used to do a Z flip(not rotate) by using bigger number first.
                       ex 50-450     would only include slices 50-450
@@ -133,7 +134,7 @@ sub command_line_mc {
   if ($#ARGV+1 == 0) { usage_message_mc("");}
   print "unprocessed args: @ARGV\n" if ($debug_val >=35);;
   my %options = ();
-  if (! getopts('a:b:cd:ei:kl:m:n:opq:s:txz-:', \%options)) {
+  if (! getopts('a:b:cd:ei:kl:m:n:opq:r:s:txz-:', \%options)) {
     print "Problem with command line options.\n";
     usage_message_mc("problem with getopts");
   } 
@@ -281,6 +282,20 @@ sub command_line_mc {
       print STDERR "  Using default channel order $channel_order\n" if ($debug_val>=10);
   }
   $arg_hash{channel_order}=$channel_order;
+
+
+ ##opts with arguments
+  my $roll_string='0:0';
+  if (defined $options{r}) {  # -r 
+      $roll_string = $options{r};
+      $cmd_line = "-r $roll_string " . $cmd_line;
+      if( $roll_string !~m/^[0-9]+:[0-9]+$/){
+	usage_message_mc("  Using roller requires two parameters separated by : no spaces"); 
+      }
+  } else { 
+      print STDERR " No rolliing specified, leaving image in original position $roll_string\n" if ($debug_val>=10);
+  }
+  $arg_hash{roll_string}=$roll_string;
 
 
   my $transform_direction='i';

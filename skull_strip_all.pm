@@ -152,7 +152,6 @@ sub make_skull_mask {
   my $morph_radius=2;
   
   my $mask_threshold=$Hf->get_value('threshold_code');
-                         # -2 use threshold_zero 2
                          # -1 use imagej (like evan and his dti pipe)
                          # 0-100 use threshold_zero 0-100, 
                          # 100-inf is set threshold.

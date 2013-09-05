@@ -15,7 +15,11 @@ sub create_transform {
 # ------------------
   my ($go, $xform_code, $A_path, $B_path, $result_transform_path_base, $ants_app_dir) = @_;
 
-  my $affine_iter="3000x3000x3000x3000";
+
+# ./antsRegistration -d 3 -o /Volumes/cretespace/S64477_m0Labels-work/S64477_m0_DTI_dwi_strip_2_DTIdwi_transform_AffineM.txt -t Rigid[0.25] -c 100x100 -s 4x2vox -f 4x2 -u -m MI[/Volumes/pipe_home/whs_references/whs_canonical_images/dti_average/DTI_dwi.nii,/Volumes/cretespace/S64477_m0Labels-work/S64477_m0_DTI_dwi_strip.nii,1,32,random,0.3]  
+
+
+  my $affine_iter="3000x3000x0x0";
   if (defined $test_mode) {
       if ($test_mode==1) {
 	  $affine_iter="1x0x0x0";
@@ -27,31 +31,37 @@ sub create_transform {
       #exe1="${ANTSPATH}ants 3 -m PR[T2s_file_nii,T1_file_nii,1,4] -i 0 --UseHistogramMatching --rigid-affine true --MI-option 16x8000 -r Gauss[3,0] -o 
       #fileT2s_out_transform -number-of-affine-iterations 100x20x10x1 --affine-gradient-descent-option 0.1x0.5x1.e-4x1.e-4 -v"
 # --- from ants.pdf: 
-# That is, if we map image B to A using 
-# ANTS 2 -m PR[A,B,1,2] -o OUTPUT 
-# then we get a deformation called OUTPUTWarp+extensions and an affine transform called 
-# OUTPUTAffine.txt. This composite mapping - when applied to B - will transform B into the space of A.
-# However, if we have points defined in B that we want to map to A, we have to use OUTPUTInverseWarp and 
-# the inverse of OUTPUTAffine.txt.
-# --- later in the pdf they show this example: where A is aka the "template.nii", so as above "B is transformed to A"?
-#    ANTS 3 -m PR[template.nii.gz,subject.nii.gz,1,2] -i 10x50x50x20 -o subjectmap.nii -t SyN[0.25] -r Gauss[3,0] 
-# For the T1 call, -v output calls A fixed and B moving.  
-      #  --- is this an inverse transform?  -i 0 ?
+
       my $opts1 = "-i 0 --use-Histogram-Matching --rigid-affine true --MI-option 32x8000 -r Gauss[3,0.5]";
       #my $opts2 = "--number-of-affine-iterations $affine_iter --affine-gradient-descent-option 0.8x0.5x1.e-4x1.e-4 -v";
      # my $opts2 = "--number-of-affine-iterations $affine_iter --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4 -v --ignore-void-origin "; 
       my $opts2 = "--number-of-affine-iterations $affine_iter --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4 -v";  
       #$cmd = "$ants_app_dir/ANTS 3 -m CC[$A_path,$B_path,1,4] $opts1 -o $result_transform_path_base $opts2"; #option - but time consuming
-      $cmd = "$ants_app_dir/ANTS 3 -m MI[$A_path,$B_path,1,32] $opts1 -o $result_transform_path_base $opts2";
       
+
+#$cmd = "$ants_app_dir/ANTS 3 -m MI[$A_path,$B_path,1,32] $opts1 -o $result_transform_path_base $opts2";
+$cmd = "$ants_app_dir/antsRegistration -d 3 -t Rigid[0.25] -c 3000x3000 -s 4x2vox -f 4x2 -u -m MI[$A_path,$B_path,1,32,random,0.3] -o $result_transform_path_base $opts2";
+
+#example from Brian
+#$reg -d $dim -r [ $f, $m ,1] \ -m mattes[ $f, $m , 1 , 32, regular, 0.2 ] \ -t translation[ 0.1 ] \ -c [$its,1.e-8,20] \ -s 4x2x1 \ -f 6x4x2 -l 1 \ -m mattes[ $f, $m , 1 , 32, regular, 0.2 ] \ -t rigid[ 0.1 ] \ -c [$its,1.e-8,20] \ -s 4x2x1 \ -f 6x4x2 -l 1 \ -m mattes[ $f, $m , 1 , 32, regular, 0.2 ] \ -t affine[ 0.1 ] \ -c [$its,1.e-8,20] \ -s 4x2x1 \ -f 6x4x2 -l 1 \ -m mattes[ $f, $m , 1 , 32 ] \ -t syn[ .25, 3, 0.5 ] \ -c [50x50x0,1.e-8,20] \ -s 2x1x0 \ -f 4x2x1 -l 1 -u 1 -z 1 \ -o [${nm},${nm}_diff.nii.gz,${nm}_inv.nii.gz]
+
+#${AP}antsApplyTransforms -d $dim -i $m -r $f -n linear -t ${nm}1Warp.nii.gz -t ${nm}0GenericAffine.mat -o ${nm}_warped.nii.gz
       
+ 
+$cmd = "$ants_app_dir/antsRegistration -d 3 -r [$A_path,$B_path,1] -m Mattes[$A_path,$B_path,1,32,random,0.3] -t translation[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 -m Mattes[$A_path,$B_path,1,32,random,0.3] -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 -u 1 -z 1 -o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4";
+$cmd = "$ants_app_dir/antsRegistration -d 3 -r [$A_path,$B_path,1] -m Mattes[$A_path,$B_path,1,32,random,0.3] -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -u 1 -z 1 -o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4";
+     
   } elsif ( $xform_code eq 'nonrigid_MSQ' ) {
       # -------- portatlasmask -------------------
       #  --- is this an inverse transform?  -i 0 ?
       my $opts1 = "-i 0 ";
       my $opts2 = "--number-of-affine-iterations $affine_iter --affine-metric-type MSQ";  
 #      --affine-gradient-descent-option 0.8x0.5x1.e-4x1.e-4 -v
-      $cmd = "$ants_app_dir/ANTS 3 -m MSQ[ $A_path,$B_path,1,2] $opts1 -o $result_transform_path_base $opts2";
+#      --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4";
+    #  $cmd = "$ants_app_dir/ANTS 3 -m MSQ[ $A_path,$B_path,1,2] $opts1 -o $result_transform_path_base $opts2";
+
+     $cmd = "$ants_app_dir/antsRegistration -d 3 -t Affine[0.25] -c 3000x3000 -s 4x2vox -f 4x2 -u -m MeanSquares[$A_path,$B_path,1,4,random,0.3] -o $result_transform_path_base $opts2";
+     $cmd = "$ants_app_dir/antsRegistration -d 3 -r [$A_path,$B_path,1] -m MeanSquares[$A_path,$B_path,1,32,random,0.3] -t translation[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 -m MeanSquares[$A_path,$B_path,1,32,random,0.3] -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 -m MeanSquares[$A_path,$B_path,1,32,random,0.3] -t affine[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1-u 1 -z 1-o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4";
   }
   else {
       error_out("$PM create_transform: don't understand xform_code: $xform_code\n");
@@ -64,6 +74,9 @@ sub create_transform {
     error_out("$PM create_transform: could not make transform: $cmd\n");
   }
   my $transform_path = "${result_transform_path_base}Affine.txt";
+
+  #which becomes if using antsRegistration
+  $transform_path="${result_transform_path_base}0GenericAffine.mat";
   # suffix mentioned on: http://picsl.upenn.edu/ANTS/ioants.php, and confirmed by what appears!
   # note: don't have any dots . in the middle of your base path, just one at the end: .nii
 
@@ -77,6 +90,7 @@ sub create_transform {
 sub apply_transform {
 # ------------------
     funct_obsolete("apply_transform", "apply_affine_transform");
+    #why needed here alex,  can you not have just apply_affine_tranform or allpy_tranform_tight
     apply_affine_transform(@_);
 }
 
@@ -85,26 +99,73 @@ sub apply_affine_transform {
 # ------------------
   my ($go, $to_deform_path, $result_path, $do_inverse_bool, $transform_path, $warp_domain_path, $ants_app_dir, $interp) =@_; 
 
-### args to wimt: from ants.pdf
-# 3  expected image dimension. 
-# the image to be deformed. 
-# the result deformed image output file name .
-# the transform itself is next - if is affine and preceded by " -i ", we apply the inverse affine map. 
-# the " -R " option dictates the domain you want to warp into - usually the "fixed" image, unless using 
-# the inverse mapping, in which case one switches the role of fixed and moving images. 
 
-# WIMT 3 to_deform_path result_path [-i] transform_path -R warp_domain_path 
+#rigid reg to atlas calls apply_affine_transform like this:
+# apply_affine_transform($ggo, $to_deform_path, $result_path, $do_inverse_bool, $xform_path, $domain_path, $ants_app_dir);
 
-  #rpexe2="${ANTSPATH}WarpImageMultiTransform 3 T2s_nii T2sout_image -R T1_in -i fileT2s_out_transform"
-
-  #from rigid_to_can_N32083_30jul.sh
-  #exe2="${ANTSPATH}WarpImageMultiTransform 3 /Volumes/alex_home/braindata/whs/T1by2/N32083by2.nii /Users/alex/whs/rN32083.nii -R
-  #/Volumes/alex_home/braindata/whs/T1by2/N31238by2.nii -i /Users/alex/whs/rN32083by2Affine.txt"
 
   my $i_opt = $do_inverse_bool ? '-i' : ''; 
-  #my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform_path $result_path -R $warp_domain_path $i_opt $transform_path $interp"; 
+  print "i_opt: $i_opt\n";
+
+
+my $reference='';
+my $i_opt1;
+
+
+# if ($do_inverse_bool eq '-i') {
+  if ($i_opt=~ m/i/) {
+    $i_opt1=1;
+    $reference=$warp_domain_path;
+  } else {
+    $i_opt1=0;
+    $reference=$to_deform_path;
+  };
+
+
+print "interp: $interp\n\n";
+
+   #my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform_path $result_path -R $warp_domain_path $i_opt $transform_path $interp"; 
+    # print "warp command: $cmd\n";
+
+
   #alex has to use tightest boundign box for macnamara study - different bounding boxes between ref and mc namara images may be adressed this way - or we learn to change the bounding boxes in nii header
-  my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform_path $result_path $i_opt $transform_path $interp --tightest-bounding-box"; 
+  #my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform_path $result_path $i_opt $transform_path $interp --tightest-bounding-box"; 
+
+ #./antsApplyTransforms -d 3 -i /Volumes/cretespace/S64477_m0Labels-work/S64477_m0_DTI_fa_reg2_dwi_strip.nii -o /Volumes/cretespace/S64477_m0Labels-work/S64477_m0_DTI_fa_reg2_dwi_strip_reg2_DTI_ar.nii -t [/Volumes/cretespace/S64477_m0Labels-work/S64477_m0_DTI_dwi_strip_2_DTIdwi_transform_Affine.txt,1]  -r /Volumes/cretespace/S64477_m0Labels-work/S64477_m0_DTI_dwi_strip.nii --use-tightest-bounding-box
+
+#which becomes if using antsRegistration
+
+
+
+
+
+
+
+if ($interp eq '') {
+    $interp="LanczosWindowedSinc";
+    $interp="Linear";
+  } else {
+    $interp="NearestNeighbor";
+    };
+
+ print "i_opt number: $i_opt1\n";
+ print "interpolation: $interp\n";
+ print "reference: $reference\n";
+
+
+#my $cmd="$ants_app_dir/antsApplyTransforms -d 3 -i $to_deform_path -o $result_path -t [$transform_path, $i_opt] -r $to_deform_path --use-tightest-bounding-box -n $interp";
+   
+my $cmd="$ants_app_dir/antsApplyTransforms -d 3 -i $to_deform_path -o $result_path -t [$transform_path, $i_opt1] -r $reference -n $interp";
+
+
+
+
+#example from Brian
+
+#$reg -d $dim -r [ $f, $m ,1] \ -m mattes[ $f, $m , 1 , 32, regular, 0.2 ] \ -t translation[ 0.1 ] \ -c [$its,1.e-8,20] \ -s 4x2x1 \ -f 6x4x2 -l 1 \ -m mattes[ $f, $m , 1 , 32, regular, 0.2 ] \ -t rigid[ 0.1 ] \ -c [$its,1.e-8,20] \ -s 4x2x1 \ -f 6x4x2 -l 1 \ -m mattes[ $f, $m , 1 , 32, regular, 0.2 ] \ -t affine[ 0.1 ] \ -c [$its,1.e-8,20] \ -s 4x2x1 \ -f 6x4x2 -l 1 \ -m mattes[ $f, $m , 1 , 32 ] \ -t syn[ .25, 3, 0.5 ] \ -c [50x50x0,1.e-8,20] \ -s 2x1x0 \ -f 4x2x1 -l 1 -u 1 -z 1 \ -o [${nm},${nm}_diff.nii.gz,${nm}_inv.nii.gz]
+
+#${AP}antsApplyTransforms -d $dim -i $m -r $f -n linear -t ${nm}1Warp.nii.gz -t ${nm}0GenericAffine.mat -o ${nm}_warped.nii.gz
+
 
   print " \n";
   print "****applying affine registration:\n $cmd\n";
@@ -120,5 +181,7 @@ sub apply_affine_transform {
   }
   print "** $PM apply_transform created $result_path\n";
 
+
 }
+
 

@@ -130,7 +130,8 @@ sub create_multi_channel_affine_transform {
 #   #my $metric0 = "$gwhs_T2W_path,$gcurrent_T2W_path,0.8,2";
 #   #my $metric1 = "$gwhs_T1_path,$gcurrent_T1_path,1,2:";
 # ######
-    my $affine_iter="3000x3000x3000x3000";
+    my $affine_iter="3000x3000x3000x100";
+    $affine_iter="3000x3000x0x0";
     if ( defined($test_mode)) {
 	if( $test_mode == 1 ) {
 	    $affine_iter="1x0x0x0";
@@ -142,14 +143,30 @@ sub create_multi_channel_affine_transform {
 #old ants
 my $cmd = "$ants_app_dir/ants 3 $metrics -o $result_transform_path_base $other_options";
 
+#new ants
+  $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -t translation[0.25] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 $metrics -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 $metrics -t affine[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 -u 1 -z 1 -o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4"; 
+
+#let the learning rate be adjustable -l 0 or default
+ $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -t translation[0.25] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 $metrics -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 $metrics -t affine[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -u 1 -z 1 -o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4"; #this one work pretty well but takes a long time
+
+#trying more smoothing here to speed convergence risk to loose small but strong features
+$cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x1vox -f 6x4x2x1 $metrics -t affine[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0vox -f 6x4x1x1 -u 1 -z 1 -l 1 -o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4"; 
+
+
+
+
 #go paralell
-# my $cmd = "$ants_app_dir/antsRegistration -d 3 -o $result_transform_path_base  $metrics $other_options";
+
     if ($DEBUG_GO) { 
 	if (! execute($ggo, "create affine transform for labels", $cmd) ) {
 	    error_out("$PM create_affine_transform: could not make transform: $cmd\n");
 	}
     } 
+    
     my $transform_path = "$result_transform_path_base\Affine.txt";
+    $transform_path = "$result_transform_path_base" . "0GenericAffine.mat";
+    print "$transform_path\n";
+
 
     # suffix mentioned on: http://picsl.upenn.edu/ANTS/ioants.php, and confirmed by what appears!
     # note: don't have any dots . in the middle of your base path, just one at the end: .nii
@@ -220,6 +237,7 @@ sub create_multi_channel_diff_syn_transform {
     }
   
 #go paralell alx
+#-f 8x4x4 should become at least -f 8x4x2 but really -f 4x2x1 ->need to time this alex
 
 for(my $chindex=0;$chindex<$nchannels;$chindex++) {
 	my $ch_id=$channel_array[$chindex];
@@ -239,7 +257,9 @@ for(my $chindex=0;$chindex<$nchannels;$chindex++) {
 		#$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x2 -t SyN[$syn_setting,1,0.5] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1"; 
 		#$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,1] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1"; 
 	        #$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
-                $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x2 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
+                $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
+                $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x3x2vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
+                $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 4x2x1 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -l 1 -u 1 -z 1"; 
 
 	      }
            elsif ($transform_direction eq 'f')
@@ -248,7 +268,7 @@ for(my $chindex=0;$chindex<$nchannels;$chindex++) {
                $ref_skull_mask   = $norm_mask_path;
 	       $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x2 -t SyN[$syn_setting,1,0.5] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -u 1"; 
 	       $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,1] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -u 1"; 
-               $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -u 1 -z 1"; 
+               $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 4x2x1 -t SyN[$syn_setting,3,0] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -l 1 -u 1 -z 1"; 
 	     }
 	}
     }
@@ -267,7 +287,7 @@ for(my $chindex=0;$chindex<$nchannels;$chindex++) {
 
 
     if ($DEBUG_GO) { 
-	if (! execute($ggo, "create affine diff syn transform for labels 3/2012\n\n\n", $cmd) ) {
+	if (! execute($ggo, "create affine diff syn transform for labels 8/2013\n\n\n", $cmd) ) {
 	    error_out("$PM create_multi_channel_diff_syn_transform: could not make transform: $cmd\n");
 	}
     } 
@@ -332,7 +352,8 @@ sub warp_label_image {
     #my $warp_domain_path = $to_deform;
     my $warp_domain_path=$channel1_path;
 
-    
+    my $interp='NearestNeighbor';
+
     #my $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path 
     #-R $warp_domain_path --use-NN $warp_xform\.nii.gz $affine_xform\.txt";
     	my $cmd='';
@@ -340,12 +361,14 @@ sub warp_label_image {
  if ($transform_direction eq 'i')
 	      {
 	    #$cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN  -i $affine_xform\.txt $inverse_warp_xform\.nii.gz"; 
-           $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN  -i $affine_xform $inverse_warp_xform\.nii.gz"; 
+          # $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN  -i $affine_xform $inverse_warp_xform\.nii.gz"; 
+           $cmd = "$ants_app_dir/antsApplyTransforms -d 3 -i $to_deform -o $result_path -t [ $affine_xform, 1] -t $inverse_warp_xform\.nii.gz -r $warp_domain_path -n $interp";
 	      }
            elsif ($transform_direction eq 'f')
 	     {
 	      #$cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN $warp_xform\.nii.gz $affine_xform\.txt";
-              $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN $warp_xform\.nii.gz $affine_xform";
+            #  $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN $warp_xform\.nii.gz $affine_xform";
+              $cmd = "$ants_app_dir/antsApplyTransforms -d 3 -i $to_deform -o $result_path -t $warp_xform\.nii.gz -t [ $affine_xform, 0] -r $warp_domain_path -n $interp";
 	     }
 
     
@@ -370,6 +393,15 @@ sub warp_label_image {
     $Hf->set_value("${channel1}-reg2-${atlas_id}-label-path", ${rpath} . ${result_file} . ${rext});
 #  my $result_file_id ="${to_deform_id_prefix}-${result_suffix_id}-file";
     return ($result_path);
+
+
+#add atropos step to increase accuracy. possibly add flag Alex with james help
+#use imagemath to genereta mask
+#/Volumes/Segmentation/ANTS_20130429_build/bin/ImageMath 3 output_mask ThresholdatMean FA_in 0.001 
+#/Volumes/Segmentation/ANTS_20130429_build/bin/ImageMath 3 /Volumes/cretespace/N50875_m0Labels-results/N50875_WHS_mask.nii ThresholdAtMean /Volumes/cretespace/N50875_m0Labels-results/N50875_m0_DTI_fa_reg2_dwi_strip_reg2_DTI.nii 0.001 
+#try usivariate inititialy since we have lots of classes
+#atropos -d 3 -a N50871_fa -i PriorLabelImage[38,labelImage,0.7] -x mask (fromImageMath) -c [10,0.001] -k HistogramParzenWindows[1.32] -m [0.3,1] -o [newlables,posterior%02d.nii.gz] -u 1 -w 
+#/Volumes/Segmentation/ANTS_20130429_build/bin/Atropos -d  3 -a /Volumes/pipe_home/whs_references/whs_canonical_images/dti_average/DTI_FA.nii -i PriorLabelImage[ 38,/Volumes/pipe_home/whs_references/whs_labels/dti_average/DTI_labels.nii,0.6] -x /Volumes/cretespace/N50875_m0Labels-results/N50875_WHS_mask.nii -c [ 4,0.01] -k HistogramParzenWindows[ 1,32] -m [ 0.3,1x1x1] -o [ /Volumes/cretespace/N50875_m0Labels-results/dwi_labels_atropos_N50875,posterior%02d.nii.gz] -u 1
 }
 
 # ------------------

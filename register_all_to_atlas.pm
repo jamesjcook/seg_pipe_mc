@@ -23,6 +23,7 @@ use strict;
 #use label_brain_pipe;
 #use vars qw($test_mode);
 
+
 # ------------------
 sub register_all_to_atlas {
 # ------------------
@@ -40,7 +41,7 @@ sub register_all_to_atlas {
       apply_atlas_transform("${ch_id}-strip-path",$atlas_xform_path, $Hf);
   }
   if ($ggo) {
-    unlink($atlas_xform_path);  # delete transform, but could keep to combine transforms
+    #unlink($atlas_xform_path);  # delete transform, but could keep to combine transforms
   }
   # sets 'T2W_reg2_whs_path', 'T1_reg2_whs_path', 'T2star_reg2_whs_path';
 }
@@ -82,6 +83,7 @@ sub create_transform_to_atlas_channel_id {
 sub apply_atlas_transform 
 # ------------------
 {
+
 #alex
 #needs no -R , insead --tightest-bounding-box
   my ($to_deform_path_id, $xform_path, $Hf) = @_;
@@ -100,16 +102,27 @@ sub apply_atlas_transform
  
   my $domain_dir;
   my $domain_path;
-  if (0) { # domain seems to be image itself in rigid_to_can_N32083_30jul.sh...
+
+       if (0) { # domain seems to be image itself in rigid_to_can_N32083_30jul.sh...
            # not the atlas data as set up here
       my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
       my $channel1 = ${channel_array[0]};
     $domain_dir   = $Hf->get_value ('dir-atlas-images');
     $domain_path  = "$domain_dir/${atlas_id}_${channel1}.nii";
+
+
     if (!-e $domain_path)  {error_out ("$PM apply_${atlas_id}_transform: missing domain nifti file $domain_path\n")}
   } else {  
     $domain_path = $to_deform_path; 
   }
+
+#this is bad coding Alex- reconcile with the if above! 
+     my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
+      my $channel1 = ${channel_array[0]};
+      $domain_dir   = $Hf->get_value ('dir-atlas-images');
+      $domain_path  = "$domain_dir/${atlas_id}_${channel1}.nii";
+
+print "reference_space for register all to altas: $domain_path\n";
 
   # --- set up result nii file path
   my $dot_less_deform_path = remove_dot_suffix($to_deform_path);
@@ -119,6 +132,12 @@ sub apply_atlas_transform
   my $do_inverse_bool = 1;
   apply_affine_transform($ggo, $to_deform_path, $result_path, $do_inverse_bool, $xform_path, $domain_path, $ants_app_dir);
 
+  #set resolution to native - step two alex
+  #my $cmd_resample="$ants_app_dir/CopyImageHeaderInformation $to_deform_path $result_path $result_path 0 0 1";
+  #`$cmd_resample`;
+
+
+   print('apply_affin_transofrm has run');
   # -- store result (registered image's) path in headfile
   #    first make a result_id: remove _strip_path suffix, leave prefix (eg T2star, T2W)
   my @parts = split "-", $to_deform_path_id;

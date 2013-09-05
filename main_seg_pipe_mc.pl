@@ -61,7 +61,7 @@ my $debug_val = 35;
 ###
 # SCRIPT AND WORLD GLOBALS
 ###
-my $ANTSAFFINEMETRIC = "MI"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by chaning the naem of this in the headfile, and looking up those different variable names in the pipe.
+my $ANTSAFFINEMETRIC ="mattes"; # "MI"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by chaning the naem of this in the headfile, and looking up those different variable names in the pipe.
 my $ANTSDIFFSyNMETRIC = "CC"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by chaning the naem of this in the headfile, and looking up those different variable names in the pipe.
 #$nchannels = 2; # number of channels to include in metrics, be nice to use all channels, but thats for the future, will have to edit lines containing this to be $#channel_list instead, to use all possible channels. perhaps we should do some kindof either or, another option flag telling the number of specified channels to use for the registration.
 # this has been set up as the -m option, will remain undocumented for now. 
@@ -102,6 +102,7 @@ my $atlas_id = $arghash{atlas_id};                 # -a this is subject to chang
 #my $user_id = $arghash{user_id};
 my $atlas_images_dir = $arghash{atlas_images_dir}; # -i /somedir/
 my $port_atlas_mask=$arghash{port_atlas_mask};     # -p 
+my $roll_string     = $arghash{roll_string};       # -r rolling with array rx ry
 my $use_existing_mask=$arghash{use_existing_mask};     # -k
 my $cmd_line = $arghash{cmd_line};
 
@@ -253,6 +254,7 @@ print
     registration_channels:$nchannels,
     suffix=$extra_runno_suffix 
     port_atlas_mask=$port_atlas_mask,
+    roll_string=$roll_string,
     use_existing_mask=$use_existing_mask,
     domask=$do_bit_mask
     atlas_labels_dir=$atlas_labels_dir
@@ -285,7 +287,8 @@ $HfResult->set_value('subproject_source'       , $subproject_source);
 $HfResult->set_value('subproject_result'       , $subproject_result);
 $HfResult->set_value('flip_x'                  , $flip_x);
 $HfResult->set_value('flip_z'                  , $flip_z);
-$HfResult->set_value('slice-selection'            , $slice_select);
+$HfResult->set_value('roll_string'             , $roll_string);
+$HfResult->set_value('slice-selection'         , $slice_select);
 $HfResult->set_value('noise_reduction'         , $noise_reduction);
 $HfResult->set_value('coil_bias'               , $coil_bias);
 $HfResult->set_value('port_atlas_mask'         , $port_atlas_mask);

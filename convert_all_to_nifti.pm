@@ -9,7 +9,7 @@
 use strict;
 require convert_to_nifti_util;
 my $debug_val = 5;
-
+my $reprocess_nii=1;  # bool to choose which code a nifti goes through. We proabably always want to run through the entire civm_to_nii process. 
 
 # ------------------
 sub convert_all_to_nifti {
@@ -37,7 +37,7 @@ sub convert_all_to_nifti {
       if (! -d $runno_dir) { error_out ("convert_all_to_nifti: no source dir! $runno_dir"); }
       if ( $ch_id =~ m/(T1)|(T2W)|(T2star)/ ) { # should move this to global options, as archivechannels	  
 	  if ($ch_id eq 'T2W' ) {
-	      print ("convert_all_to_nifti: ASSUMING YOUR T2W DATA is 16 bit!!!!!! IF YOU USED the NEW fic program this is OK! If you have older MEFIC processed data go to convert_all_to_nifti and change $nii_raw_data_type_code to $nii_i32_data_type_code (switch lines 53 and 55! \n"); 
+	      print ("convert_all_to_nifti: ASSUMING YOUR T2W DATA is 16 bit!!!!!! IF YOU USED the NEW fic program this is OK! If you have older MEFIC processed data go to convert_all_to_nifti and change $nii_raw_data_type_code to $nii_i32_data_type_code. \n"); 
 	  }
 	  my $input_headfile  = $runno_dir . "/" . "$runno.headfile";
 	  print "\tOpening input data headfile: $input_headfile\n";
@@ -48,7 +48,6 @@ sub convert_all_to_nifti {
 #	  my $xdim = $runno_Hf->get_value ("S_xres_img");
 	  log_info( "  Specimen id read from $ch_id input scan $runno headfile: $input_specid\n");
 	  $Hf_out->set_value("specid_${ch_id}"  , $input_specid);
-
 	  $nii_ch_id=convert_to_nifti_util($go, $ch_id, $nii_raw_data_type_code, $flip_x, $flip_z, $Hf_out, $runno_Hf); # .raw 
       } elsif ( $ch_id =~ m/(adc)|(dwi)|(e1)|(fa)/){  # should move this to global options, dtiresearchchannels
 	  my $input_headfile = $runno_dir . "/" . "tensor${runno}.headfile";
@@ -73,46 +72,51 @@ sub convert_all_to_nifti {
 	  my $dest_dir      = $Hf_out->get_value("dir-work");
 	  my $dest_nii_path = "$dest_dir/$dest_nii_file";
 	  my  $NIFTI_MFUNCTION = $Hf_out->get_value("nifti_matlab_converter");
-	  $nii_ch_id = "$ch_id\-nii";
-  	  $Hf_out->set_value("$ch_id\_image-suffix", $in_ext); 
-	  $Hf_out->set_value("$nii_ch_id\-file" , $dest_nii_file);
-	  $Hf_out->set_value("$nii_ch_id\-path", $dest_nii_path);
-	  
-    
-	  ######## clean up these options.
-	  my $src_image_path=$in_path;
-	  my $image_prefix=$in_name;
-	  my $image_suffix=$in_ext;
+	  if ( $reprocess_nii ) {
+	      print("Convert all to nifti in reprocessing mode\n");
+	      $nii_ch_id= convert_to_nifti_util($go, $ch_id, $nii_raw_data_type_code, $flip_x, $flip_z, $Hf_out, $runno_Hf); # .raw 	  
+	  } else {
+	      $nii_ch_id = "$ch_id\-nii"; 
+	      $Hf_out->set_value("$ch_id\_image-suffix", $in_ext); 
+	      $Hf_out->set_value("$nii_ch_id\-file" , $dest_nii_file);
+	      $Hf_out->set_value("$nii_ch_id\-path", $dest_nii_path);
+
+	      
+	      ######## clean up these options.
+	      my $src_image_path=$in_path;
+	      my $image_prefix=$in_name;
+	      my $image_suffix=$in_ext;
 #	  $dest_nii_path=0;
-	  my ($xdim,$ydim,$zdim) =(0,0,0);#### should get this from nii.hdr in matlab
-	  #$nii_datatype_code=$nii_raw_data_type_code;
-	  my ($xvox,$yvox,$zvox) =(0,0,0);#### should get this from nii.hdr in matlab
+	      my ($xdim,$ydim,$zdim) =(0,0,0);#### should get this from nii.hdr in matlab
+	      #$nii_datatype_code=$nii_raw_data_type_code;
+	      my ($xvox,$yvox,$zvox) =(0,0,0);#### should get this from nii.hdr in matlab
 #	  $flip_x=0;
 #	  $flip_z=0;
-	  my $sliceselect    = $Hf_out->get_value_like("slice-selection");  # using get_value like is experimental, should be switched to get_value if this fails.
-	  my ($zstart, $zstop);
-	  
-	  my @stringargs = ($src_image_path,$image_prefix,$image_suffix,$dest_nii_path);
-	  my @numargs =    ($xdim, $ydim, $zdim, $nii_raw_data_type_code, $xvox,$yvox,$zvox, $flip_x, $flip_z);
+	      my $sliceselect    = $Hf_out->get_value_like("slice-selection");  # using get_value like is experimental, should be switched to get_value if this fails.
+	      my ($zstart, $zstop);
+	      
+	      my @stringargs = ($src_image_path,$image_prefix,$image_suffix,$dest_nii_path);
+	      my @numargs =    ($xdim, $ydim, $zdim, $nii_raw_data_type_code, $xvox,$yvox,$zvox, $flip_x, $flip_z);
 
-	  if ( $sliceselect eq "all" || $sliceselect eq "NO_KEY" || $sliceselect eq "UNDEFINED_VALUE" || $sliceselect eq "EMPTY_VALUE" ) { 
-	    # do nothing with zstart, zstop
-	    $zstart='';
-	    $zstop='';
-	  } else { 
-	    ($zstart, $zstop) = split('-',$sliceselect);
-	    push(@numargs,$zstart);
-	    push(@numargs,$zstop);
-	  } 
+	      if ( $sliceselect eq "all" || $sliceselect eq "NO_KEY" || $sliceselect eq "UNDEFINED_VALUE" || $sliceselect eq "EMPTY_VALUE" ) { 
+		  # do nothing with zstart, zstop
+		  $zstart='';
+		  $zstop='';
+	      } else { 
+		  ($zstart, $zstop) = split('-',$sliceselect);
+		  push(@numargs,$zstart);
+		  push(@numargs,$zstop);
+	      } 
 
-	  my $args = "'".join('\', \'',@stringargs)."',".join(', ',@numargs);
-	  my $cmd =  make_matlab_command ($NIFTI_MFUNCTION, $args, "$ch_id\_", $Hf_out); 
-	  #INSERT flip nifti code here abouts, maybe with flip nii function
+	      my $args = "'".join('\', \'',@stringargs)."',".join(', ',@numargs);
+	      my $cmd =  make_matlab_command ($NIFTI_MFUNCTION, $args, "$ch_id\_", $Hf_out); 
+	      #INSERT flip nifti code here abouts, maybe with flip nii function
 #	  my $cmd="$ants_app_dir/PermuteFlipImageOrientationAxes 3 $in_file $dest_nii_path 0 1 2 0 $flip_x $flip_z 1"; 
-	  #PermuteFlipImageOrientationAxes ImageDimension  inputImageFile  outputImageFile xperm yperm {zperm}  xflip yflip {zflip}  {FlipAboutOrigin}
+	      #PermuteFlipImageOrientationAxes ImageDimension  inputImageFile  outputImageFile xperm yperm {zperm}  xflip yflip {zflip}  {FlipAboutOrigin}
 #	  my $cmd = "cp $in_file $dest_nii_path";
-
-	  push @cmd_list, $cmd;
+	      
+	      push @cmd_list, $cmd;
+	  }
 	  
       } else {
 	  error_out("Unsupported channel name $ch_id\n");
