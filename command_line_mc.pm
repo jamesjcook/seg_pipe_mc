@@ -86,7 +86,7 @@ usage:
                       Directory must contain <atlas_id>_labels.nii files, use -a (see below).
      -i  dir        : Registration Target, default is set in setup files. 
                       Directory must contain <atlas_id>_<channel>.nii files, use -a (see below).
-     -a  atlas_id   : Atlas_id tag for custom atlas, ONLY USED with -i option otherwise ignored.
+     -a  atlas_id   : Atlas_id tag for custom atlas.
                       Specifies the atlas_id part of the filename, \"whs\" for waxholmspace atlas,
                       otherwise defautls to \"atlas\".
      -b do_bit_mask : Step skipping, default: 11111111 to do all 8 steps; 01111111 to skip first step, etc. 
@@ -356,10 +356,11 @@ sub command_line_mc {
   if (defined $options{i}) {  # -i
      $atlas_images_dir = $options{i};
      $cmd_line = "-i $atlas_images_dir " . $cmd_line;
-     if (defined $options{a}) { # -a 
-	 $atlas_id = $options{a};
-	 $cmd_line = "-a $atlas_id " . $cmd_line;
-     }
+
+  }
+  if (defined $options{a}) { # -a 
+      $atlas_id = $options{a};
+      $cmd_line = "-a $atlas_id " . $cmd_line;
   }
   $arg_hash{atlas_images_dir}=$atlas_images_dir;
   $arg_hash{atlas_id}=$atlas_id;

@@ -141,8 +141,7 @@ $HfResult->set_value('dir-atlas-labels', $atlas_labels_dir);
 
 
 if ($atlas_images_dir eq "DEFAULT") { # handle -i and -a options
-  $atlas_id = 'whs';
-  $atlas_images_dir = $HfResult->get_value('dir-whs-images-default');
+   $atlas_images_dir = $HfResult->get_value('dir-whs-images-default');
 } else {
   if ($atlas_id eq 'DEFAULT') { 
     $atlas_id='whs';
