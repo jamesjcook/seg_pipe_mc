@@ -294,7 +294,7 @@ $HfResult->set_value('port_atlas_mask'         , $port_atlas_mask);
 $HfResult->set_value('use_existing_mask'       , $use_existing_mask);
 $HfResult->set_value('threshold_code'          , $threshold_code);
 #get specid from data headfiles?
-$HfResult->set_value('specid'  , "NOT_HANDLED_YET");
+$HfResult->set_value('U_specid'  , "NOT_HANDLED_YET");
 # --- set runno info in HfResult
 print ("Inserting Channel runnos to headfile:\n");
 
@@ -315,14 +315,10 @@ $HfResult->set_value("nifti_matlab_converter",$NIFTI_MFUNCTION);
 # ${ch_id}[-_]-image-padded-digits 
 # ${ch_id}[-_]-image-basename      
 # ${ch_id}[-_]-image-suffix         
-for my $ch_id (@channel_list) {
-    locate_data_util($pull_source_images, "${ch_id}" , $HfResult);
-}
 
-# $flip_x, $flip_z,
-label_brain_pipe($do_bit_mask, $HfResult);  # --- pipeline work is here
-
-
+###
+# Set the archive research keys 
+##
 # archivedestination_project_directory_name=13.mcnamara.02
 # archivedestination_unique_item_name=tensorS64487_m0
 # archivesource_computer=crete
@@ -331,7 +327,7 @@ label_brain_pipe($do_bit_mask, $HfResult);  # --- pipeline work is here
 # archivesource_item=tensorS64487_m0-DTI-results 
 # archivesource_item_form=directory-set
 my $OUTPUT_FORMAT      = 'txt';
-$HfResult->set_value('U_specid'              , $HfResult->get_value('specid_'.$channel_list[0]));
+#$HfResult->set_value('U_specid'              , $HfResult->get_value('specid_'.$channel_list[0]));
 $HfResult->set_value('U_db_insert_type'      , "research");
 #   recommended U_params for archive
 $HfResult->set_value('U_parent_runno'        , $runno_list[0]);
@@ -339,12 +335,10 @@ $HfResult->set_value('U_root_runno'          , $runno_list[0]);
 $HfResult->set_value('U_code'                , $subproject_result);
 #$HfResult->set_value('U_civmid'              , $user_id);
 $HfResult->set_value('U_stored_file_format'  , $OUTPUT_FORMAT);
-$HfResult->set_value('U_date'                , $HfResult->now_date_db()); #  "10-05-14 09:30:20"
 $HfResult->set_value('parent_subproject'     , $subproject_source);
 $HfResult->set_value('U_rd_modality'         , "research Segmentaion");
 #   required for archive operation
 $HfResult->set_value('archivesource_headfile_creator' , "$PIPELINE_NAME $PIPELINE_VERSION");
-$HfResult->set_value('archivesource_computer'         , $HfResult->get_value('engine-computer-name') );
 # archive the result-dir content with the dir name like tensorRUNNO...
 my $result_dir =  $HfResult->get_value('dir-result');
 my $path = defile($result_dir);
@@ -352,14 +346,20 @@ my $last_dir = depath($result_dir);
 $HfResult->set_value('archivesource_item_form' , "directory-set");
 $HfResult->set_value('archivesource_item'      , $last_dir);
 $HfResult->set_value('archivesource_directory' , $path );
-$HfResult->set_value('archivedestination_unique_item_name'      , $nominal_runno);
+$HfResult->set_value('archivedestination_unique_item_name'      , $nominal_runno."Labels");
 $HfResult->set_value('archivedestination_project_directory_name', $subproject_result);
 
-
-
-
-
-
+for my $ch_id (@channel_list) {
+    locate_data_util($pull_source_images, "${ch_id}" , $HfResult);
+}
+# $flip_x, $flip_z,
+label_brain_pipe($do_bit_mask, $HfResult);  # --- pipeline work is here
+###
+# set last archive research keys.
+###
+$HfResult->set_value('U_date'                , $HfResult->now_date_db()); #  "10-05-14 09:30:20"
+$HfResult->set_value('archivesource_computer'         , $HfResult->get_value('engine_computer_name') );
+#print $HfResult->get_value('engine_computer_name')."\n";
 
 # --- done
 my $dest    = $HfResult->get_value('dir-result');
