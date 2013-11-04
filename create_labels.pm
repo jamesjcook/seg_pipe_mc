@@ -398,10 +398,16 @@ sub warp_label_image {
 #add atropos step to increase accuracy. possibly add flag Alex with james help
 #use imagemath to genereta mask
 #/Volumes/Segmentation/ANTS_20130429_build/bin/ImageMath 3 output_mask ThresholdatMean FA_in 0.001 
+#dilate mask by 3 voxels
+#/Volumes/Segmentation/ANTS_20130429_build/bin/ImageMath 3 output_mask MD FA_in 3
 #/Volumes/Segmentation/ANTS_20130429_build/bin/ImageMath 3 /Volumes/cretespace/N50875_m0Labels-results/N50875_WHS_mask.nii ThresholdAtMean /Volumes/cretespace/N50875_m0Labels-results/N50875_m0_DTI_fa_reg2_dwi_strip_reg2_DTI.nii 0.001 
 #try usivariate inititialy since we have lots of classes
 #atropos -d 3 -a N50871_fa -i PriorLabelImage[38,labelImage,0.7] -x mask (fromImageMath) -c [10,0.001] -k HistogramParzenWindows[1.32] -m [0.3,1] -o [newlables,posterior%02d.nii.gz] -u 1 -w 
 #/Volumes/Segmentation/ANTS_20130429_build/bin/Atropos -d  3 -a /Volumes/pipe_home/whs_references/whs_canonical_images/dti_average/DTI_FA.nii -i PriorLabelImage[ 38,/Volumes/pipe_home/whs_references/whs_labels/dti_average/DTI_labels.nii,0.6] -x /Volumes/cretespace/N50875_m0Labels-results/N50875_WHS_mask.nii -c [ 4,0.01] -k HistogramParzenWindows[ 1,32] -m [ 0.3,1x1x1] -o [ /Volumes/cretespace/N50875_m0Labels-results/dwi_labels_atropos_N50875,posterior%02d.nii.gz] -u 1
+#atropos -d 3 -a [ /Volumes/cretespace/test/N50878FA.nii,0.5] -i PriorLabelImage[ 38,/Volumes/cretespace/test/N50878FAlabels.nii,0.8] -x /Volumes/cretespace/test/N50878mask172.nii -c [ 3,0.001] -k Gaussian -m [ 0,1x1x1] -o [ /Volumes/cretespace/test/N50878FAlabelsAtropos.nii,/Volumes/cretespace/test/N50878FAlabelsPostProb.nii ] -u 1 -p Socrates
+
+#./atropos -d 3 -a [ /Volumes/cretespace/test/N50878_m0_DTI_fa_reg2_dwi_strip_reg2_DTI.nii,0.5] -i PriorLabelImage[ 38,/Volumes/cretespace/test/dwi_labels_warp_N50878_m0_cr.nii,0.7 ] -x /Volumes/cretespace/test/N50878maskFullResDil3.nii -c [ 3,0.001] -k Gaussian -m [ 0,1x1x1 ] -o [ /Volumes/cretespace/test/N50878FAlabelsAtroposFullRes.nii,/Volumes/cretespace/test/N50878FAlabelsPostProbFullRes_%d.nii ] -u 1 -p Socrates
+
 }
 
 # ------------------
