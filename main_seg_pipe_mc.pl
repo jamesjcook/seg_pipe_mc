@@ -358,7 +358,7 @@ label_brain_pipe($do_bit_mask, $HfResult);  # --- pipeline work is here
 # set last archive research keys.
 ###
 $HfResult->set_value('U_date'                , $HfResult->now_date_db()); #  "10-05-14 09:30:20"
-$HfResult->set_value('archivesource_computer'         , $HfResult->get_value('engine_computer_name') );
+$HfResult->set_value('archivesource_computer'         , $HfResult->get_value('engine-computer-name') );
 #print $HfResult->get_value('engine_computer_name')."\n";
 
 # --- done

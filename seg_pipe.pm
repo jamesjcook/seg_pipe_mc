@@ -41,7 +41,8 @@ sub set_environment {
 # this is just to make main_seg_pipe easier to read.
   my ($runno) = @_;
   print ("runno=$runno\n") if ($debug_val>=35);
-  my ($std_input_dir, $std_work_dir, $std_result_dir, $std_headfile, $std_whs_images_dir, $std_whs_labels_dir) = get_engine_dependencies($runno);
+  my ($std_input_dir, $std_work_dir, $std_result_dir, $std_headfile, $std_whs_images_dir, $std_whs_labels_dir, $engine_hostname) =
+      get_engine_dependencies($runno);
 
   # --- open log
   open_log($std_result_dir);
@@ -63,6 +64,7 @@ sub set_environment {
   $HfResult->set_value('engine-app-matlab-opts'  , $g_engine_matlab_opts);
   $HfResult->set_value('engine-app-ants-dir'     , $g_engine_ants_app_dir);
   $HfResult->set_value('engine-app-fsl-dir'      , $g_engine_fsl_dir);
+  $HfResult->set_value('engine-computer-name'    , $g_engine_fsl_dir);
   
 }
 
@@ -172,7 +174,7 @@ sub get_engine_dependencies {
 
   my $conventional_headfile = "$conventional_result_dir/$runno$fix\.headfile"; 
   return($conventional_input_dir, $conventional_work_dir, $conventional_result_dir, $conventional_headfile, 
-      $engine_whs_images_dir, $engine_whs_labels_dir);
+      $engine_whs_images_dir, $engine_whs_labels_dir, $PIPELINE_HOSTNAME);
 }
 
 1;
