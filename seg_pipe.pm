@@ -30,6 +30,7 @@ my $g_engine_ants_app_dir;
 my $g_engine_matlab_app;
 my $g_engine_matlab_opts;
 my $g_engine_fsl_dir;
+my $g_engine_name;
 
 # ------------------
 sub set_environment {
@@ -64,7 +65,7 @@ sub set_environment {
   $HfResult->set_value('engine-app-matlab-opts'  , $g_engine_matlab_opts);
   $HfResult->set_value('engine-app-ants-dir'     , $g_engine_ants_app_dir);
   $HfResult->set_value('engine-app-fsl-dir'      , $g_engine_fsl_dir);
-  $HfResult->set_value('engine-computer-name'    , $g_engine_fsl_dir);
+  $HfResult->set_value('engine-computer-name'    , $engine_hostname);
   
 }
 
