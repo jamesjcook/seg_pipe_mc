@@ -49,7 +49,7 @@ sub convert_all_to_nifti {
 	  log_info( "  Specimen id read from $ch_id input scan $runno headfile: $input_specid\n");
 	  $Hf_out->set_value("specid_${ch_id}"  , $input_specid);
 	  $nii_ch_id=convert_to_nifti_util($go, $ch_id, $nii_raw_data_type_code, $flip_x, $flip_z, $Hf_out, $runno_Hf); # .raw 
-      } elsif ( $ch_id =~ m/(adc)|(dwi)|(e1)|(fa)/){  # should move this to global options, dtiresearchchannels
+      } elsif ( $ch_id =~ m/(adc)|(dwi)|(e1)|(e2)|(e3)|(fa)|(rd)/){  # should move this to global options, dtiresearchchannels
 	  my $input_headfile = $runno_dir . "/" . "tensor${runno}.headfile";
 	  my $runno_Hf = new Headfile ('ro', $input_headfile);
 	  if (! $runno_Hf->check)          {
