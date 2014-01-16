@@ -34,7 +34,8 @@ require register_all_to_channel1;
 require skull_strip_all;
 require register_all_to_atlas;
 require create_labels;
-require calculate_volumes;
+#require calculate_volumes;
+require calculate_statistics;
 
 my $debug_val = 5;
 
@@ -58,8 +59,8 @@ sub label_brain_pipe {
   log_info ("$PM name: $NAME");
   log_info ("$PM desc: $DESC");
   log_info ("$PM version: $VERSION");
-  my ($nifti, $noise, $bias, $register, $strip, $atlas, $label, $volumes) =  split('', $do_bits);
-  log_info ("pipeline step do bits: nifti:$nifti, bias:$bias, noise:$noise, register:$register, strip:$strip, atlasreg:$atlas, label:$label,volumes:$volumes\n");
+  my ($nifti, $noise, $bias, $register, $strip, $atlas, $label, $statistics) =  split('', $do_bits);
+  log_info ("pipeline step do bits: nifti:$nifti, bias:$bias, noise:$noise, register:$register, strip:$strip, atlasreg:$atlas, label:$label,statistics:$statistics\n");
 #step 1
   convert_all_to_nifti($nifti, $Hf_out);  
   if ($Hf_out->get_value("coil_bias") == 1 ) {
@@ -86,8 +87,8 @@ sub label_brain_pipe {
 print("step 7 :\n create labels  \n");
   create_labels($label, $Hf_out); # diffeo to atlas of the rigid register.
 #step8
-print("step 8 :\n calculate volumes  \n");
-  calculate_volumes($volumes, $Hf_out);
+print("step 8 :\n calculate statistics  \n");
+  calculate_statistics($statistics, $Hf_out);
 #put in results
   save_favorite_intermediates (1, $Hf_out);
   return;

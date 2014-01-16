@@ -99,7 +99,7 @@ usage:
                       \tstrip,    - skull strip calculation for first channel(applied ot all)
                       \treg_atlas,- rigid register to atlas
                       \tlabel,    - diffeomorphic register atlas label to image in atlas space.
-                      \tvolumecalc.- calculate volumes of labels 
+                      \tstat_calc.- calculate statistics of labels 
                       Skipping is only for gross testing of commands created and not guaranteed to produce results.
      -t             : test mode, cuts all iterations for ants to 1x0x0x0, really fun with bit mask for rapid code testing. 
                       eg, this option is NOT FOR REGULAR USERS. 
