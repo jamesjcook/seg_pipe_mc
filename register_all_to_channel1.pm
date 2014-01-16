@@ -34,13 +34,19 @@ sub register_all_to_channel1 {
   log_info ("$PM version: $VERSION");
 
   my @channel_array=split(',',$Hf->get_value('runno_ch_commalist'));
+  #print (join(' ',@channel_array)."\n");
   if ($#channel_array>=1) {
-      for my $ch_id (@channel_array[1,$#channel_array]) {
+      #for my $ch_id (@channel_array[1,$#channel_array]) {
+      for(my $chnum=1;$chnum<=$#channel_array;$chnum=$chnum+1) {
+	  #my $ch_id (@channel_array[1,$#channel_array]) {
+	  my $ch_id = @channel_array[$chnum];
 	  print ("\n\n\t$PM now working on ch_id:$ch_id\n\n\n") if ($debug_val>=35);
 	  register_rigid_to_channel1("${ch_id}-nii-path", $Hf);
       }
   }
   # result ids in headfile: T2star_reg2_T1_path, T2W_reg2_T1_path, T1_nii_path
+  #exit;
+
 }
 
 # ------------------
