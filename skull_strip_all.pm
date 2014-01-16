@@ -72,7 +72,10 @@ sub skull_strip_all {
 # --- store result file paths for masked results under these ids
   $Hf->set_value (   "${channel1}-strip-path",     $result_path  );
   if ($#channel_array>=1) { 
-      for my $ch_id (@channel_array[1,$#channel_array]) {
+      #for my $ch_id (@channel_array[1,$#channel_array]) {
+      for(my $chnum=1;$chnum<=$#channel_array;$chnum=$chnum+1) {
+	  #my $ch_id (@channel_array[1,$#channel_array]) {
+	  my $ch_id = @channel_array[$chnum];
 	  $result_path = apply_skull_mask("${ch_id}-reg2-${channel1}-path", $norm_mask_path, 'strip', $Hf);
      # --- store result file paths for masked results under these ids
 	  $Hf->set_value (   "${ch_id}-strip-path",     $result_path);

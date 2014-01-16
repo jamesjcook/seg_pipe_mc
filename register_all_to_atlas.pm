@@ -37,7 +37,7 @@ sub register_all_to_atlas {
   my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
   my $channel1 = ${channel_array[0]};
   my $atlas_xform_path = create_transform_to_atlas_channel_id ("${channel1}-strip-path",$channel1, $Hf);
-  for my $ch_id (@channel_array) {
+  foreach my $ch_id (@channel_array) {
       apply_atlas_transform("${ch_id}-strip-path",$atlas_xform_path, $Hf);
   }
   if ($ggo) {
