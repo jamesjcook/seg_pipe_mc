@@ -34,7 +34,7 @@ my $gwhs_T1_path;
 
 my $DEBUG_GO = 1;
 my $debug_val = 5;
-my $SYNSETTING=3; #0.75; #%was 0.5
+my $SYNSETTING=2; #0.75; #%was 0.5; was 3
 #my $METRIC = "MI"; # could be any of the ants supported metrics, defined in main as a global, so bad to do that. should really chage that....
 
 
@@ -200,7 +200,7 @@ sub create_multi_channel_diff_syn_transform {
 
 
     #/////// define options for transform ////////// 
-# build metrics, only using first two channels for now, i want to change that later. 
+    # build metrics, only using first two channels for now, i want to change that later. 
     my $metrics='';
     
     my $affine_iter="3000x3000x3000x3000";
@@ -214,8 +214,6 @@ sub create_multi_channel_diff_syn_transform {
    
     ###my $skull_mask   = $Hf->get_value('skull_norm_mask_path');  #### but we don't want to use this current mask for -x
   
-
-
     $ref_skull_mask   = "$canon_image_dir/${atlas_id}_mask.nii"; # a canonical reference mask
 
     if (! -e $ref_skull_mask) {
@@ -236,8 +234,6 @@ sub create_multi_channel_diff_syn_transform {
 	}
     }
   
-#go paralell alx
-#-f 8x4x4 should become at least -f 8x4x2 but really -f 4x2x1 ->need to time this alex
 
 for(my $chindex=0;$chindex<$nchannels;$chindex++) {
 	my $ch_id=$channel_array[$chindex];
@@ -260,6 +256,7 @@ for(my $chindex=0;$chindex<$nchannels;$chindex++) {
                 $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
                 $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x3x2vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
                 $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 4x2x1 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -l 1 -u 1 -z 1"; 
+                $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 2x1x0vox -f 4x2x1 -t SyN[$syn_setting,3,0.5] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -l 1 -u 1 -z 1"; 
 
 	      }
            elsif ($transform_direction eq 'f')
@@ -269,6 +266,7 @@ for(my $chindex=0;$chindex<$nchannels;$chindex++) {
 	       $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x2 -t SyN[$syn_setting,1,0.5] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -u 1"; 
 	       $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,1] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -u 1"; 
                $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 4x2x1 -t SyN[$syn_setting,3,0] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -l 1 -u 1 -z 1"; 
+               $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 2x1x0vox -f 4x2x1 -t SyN[$syn_setting,3,0.5] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -l 1 -u 1 -z 1"; 
 	     }
 	}
     }
@@ -277,9 +275,7 @@ for(my $chindex=0;$chindex<$nchannels;$chindex++) {
 
 
 
-#short run
-# $my_options = "-c $diffsyn_iter -s 0x0x0x0 -f 8x4x2x1 -t SyN[$syn_setting,1,0.5] -x $ref_skull_mask -r $affine_xform -a 0"; 
-  
+
     #/////// define ants transform command including all options ///////
    
 #go paralell alx
