@@ -293,6 +293,7 @@ $HfResult->set_value('coil_bias'               , $coil_bias);
 $HfResult->set_value('port_atlas_mask'         , $port_atlas_mask);
 $HfResult->set_value('use_existing_mask'       , $use_existing_mask);
 $HfResult->set_value('threshold_code'          , $threshold_code);
+$HfResult->set_value('registration_channels'   , $nchannels);
 #get specid from data headfiles?
 $HfResult->set_value('U_specid'  , "NOT_HANDLED_YET");
 # --- set runno info in HfResult
