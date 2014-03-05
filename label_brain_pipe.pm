@@ -117,8 +117,13 @@ sub save_favorite_intermediates {
   my @list2 =();
   for my $ch_id (@channel_array) {
       push @list, $Hf_out->get_value("${ch_id}-reg2-${atlas_id}-path");
+
       push @list2, $Hf_out->get_value("${ch_id}-reg2-${atlas_id}-file");
   }
+  
+     push @list, $Hf_out->get_value("diff_affine");
+     push @list, $Hf_out->get_value("diff_inv_warp");
+     push @list, $Hf_out->get_value("diff_warp");
 
 #   push @list, $Hf_out->get_value("T2star-reg2-${atlas_id}-path");
 #   push @list, $Hf_out->get_value("T2W-reg2-${atlas_id}-path");
@@ -128,22 +133,27 @@ sub save_favorite_intermediates {
 #   push @list2, $Hf_out->get_value("T1-reg2-${atlas_id}-file");
 
   foreach my $p (@list) {   # path to 32 bit atlas result file
+    if ( ! -f $p ) { # dirty fix to grab the transform files successfully.
+      $p=$p.".nii.gz";
+    }
     my $cmd = "cp $p $results_dir";
     my $ok = execute($do_save, "copy ${atlas_id} result image set", $cmd);
     if (! $ok) {
       error_out("Could not copy ${atlas_id} images: $cmd\n");
     }
 
-    # -- also convert  atlas images into Byte format for easier QA in Avizo, and move to results:
-    my $atlas_file = shift @list2;
-    my $byte_path = "$results_dir/${atlas_file}_Byte\.nii"; 
-    my $cmd2 = "$ants_app_dir/ImageMath 3 $byte_path Byte $p";  # output first
-    my $ok = execute($do_save, "convert ${atlas_id} image set to byte", $cmd2);
-    if (! $ok) {
-        error_out("Could not convert ${atlas_id} to byte: $cmd2\n");
-     }
+    if( 0)  {
+      # -- also convert  atlas images into Byte format for easier QA in Avizo, and move to results:
+      my $atlas_file = shift @list2;
+      my $byte_path = "$results_dir/${atlas_file}_Byte\.nii"; 
+      my $cmd2 = "$ants_app_dir/ImageMath 3 $byte_path Byte $p";  # output first
+      my $ok = execute($do_save, "convert ${atlas_id} image set to byte", $cmd2);
+      if (! $ok) {
+	error_out("Could not convert ${atlas_id} to byte: $cmd2\n");
+      }
+    }
   }
 
-}
+} #function end for save intermediates
 
 1;
