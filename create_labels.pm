@@ -35,6 +35,7 @@ my $gwhs_T1_path;
 my $DEBUG_GO = 1;
 my $debug_val = 5;
 my $SYNSETTING=2; #0.75; #%was 0.5; was 3
+my $do_save = 1;
 #my $METRIC = "MI"; # could be any of the ants supported metrics, defined in main as a global, so bad to do that. should really chage that....
 
 
@@ -55,11 +56,11 @@ sub create_labels {
     my ($ants_transform_prefix) = create_multi_channel_diff_syn_transform ($affine_xform, $SYNSETTING , $Hf); 
     #syn_setting defined as 0.5, we could save this to hf perhaps, or more fun, specify it elsewhere and store in headfile.
 
-#  my $label_path      = warp_canonical_labels($ants_transform_prefix, $Hf); # obsolete funciton does same thing as warp_label_image, and warp_label_image has been updated alot since this was in main use.
+#  my $label_path      = warp_canonical_labels($ants_transform_prefix, $Hf); # obsolete function does same thing as warp_label_image, and warp_label_image has been updated alot since this was in main use.
 
     #####my $warp_label_path = warp_label_image($ds_affine_xform_base, $ds_warp_xform_base, $Hf);
     my $warp_label_path = warp_label_image($Hf);
-    #warp_canonical_image($Hf); # 28 June 2012
+   
     
 #  log_info ("Pipeline created result 1: $label_path\n"); # ouput of obsolete function, do not use. 
     log_info ("Pipeline created result 2: $warp_label_path\n");
@@ -87,7 +88,15 @@ sub create_multi_channel_affine_transform {
     my $metric           = $Hf->get_value('ANTS-affine-metric');
     my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
     my $channel1 = ${channel_array[0]};
-    my $result_transform_path_base = "$work_dir/${channel1}_label_transform_";
+    my $channel1_runno   = $Hf->get_value("${channel1}-runno");
+    my $used_reg_channels='';
+    #nchannels is a global, should conert to hf->get_value('registration_channels');
+    # 
+    for(my $chindex=0;$chindex<$nchannels;$chindex++) {
+      #    foreach (@channel_array) {
+      $used_reg_channels=$used_reg_channels.'_'.@channel_array[$chindex];
+    }
+    my $result_transform_path_base = "$work_dir/${channel1_runno}${used_reg_channels}_label_transform_";
                            # $result_transform_path_base = "$work_dir/${channel1}_label_DIFF_SYN_transform_";# alex 12 october 12
     my $transform_direction=$Hf->get_value('transform_direction');
 
@@ -163,8 +172,8 @@ $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -t rigid[0.1] -c [$affine_i
 	}
     } 
     
-    my $transform_path = "$result_transform_path_base\Affine.txt";
-    $transform_path = "$result_transform_path_base" . "0GenericAffine.mat";
+    my $transform_path = "$result_transform_path_base\Affine.txt"; # old ants version name
+    $transform_path = "$result_transform_path_base" . "0GenericAffine.mat"; # new ants version 
     print "$transform_path\n";
 
 
@@ -192,13 +201,20 @@ sub create_multi_channel_diff_syn_transform {
     my $metric           = $Hf->get_value('ANTS-diff-SyN-metric');
     my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
     my $channel1 = ${channel_array[0]};
-    my $result_transform_path_base = "$work_dir/${channel1}_label_DIFF_SYN_transform_";
+    my $channel1_runno   = $Hf->get_value("${channel1}-runno");
+    my $used_reg_channels='';
+    #nchannels is a global, should conert to hf->get_value('registration_channels');
+    # 
+    for(my $chindex=0;$chindex<$nchannels;$chindex++) {
+      #    foreach (@channel_array) {
+      $used_reg_channels=$used_reg_channels.'_'.@channel_array[$chindex];
+    }
+    my $result_transform_path_base = "$work_dir/${channel1_runno}${used_reg_channels}_DIFF_SYN_transform_";
     my $transform_direction=$Hf->get_value('transform_direction');
     my $ref_skull_mask='';
     my $canon_image_dir    = $Hf->get_value('dir-atlas-images');
     my $norm_mask_path = $Hf->get_value('skull-norm-mask-path');  # save mask to aid labelling
-
-
+    
     #/////// define options for transform ////////// 
     # build metrics, only using first two channels for now, i want to change that later. 
     my $metrics='';
@@ -224,8 +240,8 @@ sub create_multi_channel_diff_syn_transform {
 #long run
     my $diffsyn_iter= "3000x3000x3000x3000"; 
 #short run
- $diffsyn_iter="3000x3000x3000x3000" ; # matt change back to "3000x3000x3000";
- $diffsyn_iter="3000x3000x3000";
+    $diffsyn_iter="3000x3000x3000x3000" ; # matt change back to "3000x3000x3000";
+    $diffsyn_iter="3000x3000x3000";
 
     if ( defined($test_mode)) {
 	if( $test_mode == 1 ) {
@@ -277,8 +293,7 @@ for(my $chindex=0;$chindex<$nchannels;$chindex++) {
 
 
     #/////// define ants transform command including all options ///////
-   
-#go paralell alx
+
     my $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -o $result_transform_path_base $my_options";
 
 
@@ -320,7 +335,10 @@ sub warp_label_image {
 # this should warp from atlas labels to the atlas registered input images. 
 # my ($affine_xform, $warp_xform, $Hf) = @_;
     my ($Hf) = @_;
+    my ($do_save)=1;#not needed anymore here
     print("\n\n\t$PM stage 3/$PM_stages \"warp_label_image\" \n\n\n") if ($debug_val >= 35) ;
+
+    
 
     my $label_dir        = $Hf->get_value('dir-atlas-labels');
     my $atlas_id         = $Hf->get_value('reg-target-atlas-id');
@@ -330,6 +348,9 @@ sub warp_label_image {
     my $channel1 = ${channel_array[0]};
 
     my $channel1_runno   = $Hf->get_value("${channel1}-runno");
+
+    my $in_name = $channel1_runno;#not needed anymore
+
     my $channel1_path      = $Hf->get_value("${channel1}-reg2-${atlas_id}-path");
     my $to_deform = $label_dir . "/${atlas_id}_labels.nii"; 
 
@@ -388,6 +409,11 @@ sub warp_label_image {
     $Hf->set_value("${channel1}-reg2-${atlas_id}-label-file",$result_file);
     $Hf->set_value("${channel1}-reg2-${atlas_id}-label-path", ${rpath} . ${result_file} . ${rext});
 #  my $result_file_id ="${to_deform_id_prefix}-${result_suffix_id}-file";
+
+
+
+
+
     return ($result_path);
 
 
