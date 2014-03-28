@@ -56,6 +56,7 @@ sub create_transform_to_atlas_channel_id {
   my $domain_dir   = $Hf->get_value ('dir-atlas-images');
   
   my $domain_path  = "$domain_dir/${atlas_id}_${ch_id}.nii"; 
+  my $do_save = 1;
   # whs filename is whs_T1.nii, and whs_T2star.nii etc.
 
   if ($ggo) {
@@ -74,6 +75,19 @@ sub create_transform_to_atlas_channel_id {
   my $xform_path =
      create_transform ($ggo, 'rigid1', $to_deform_path, $domain_path, $result_transform_path_base, $ants_app_dir);
   print "** Rigid ${atlas_id} transform created for $to_deform_path_id: $xform_path\n";
+
+  
+
+  # -- copy rigid transform to results directory
+
+    my $atlas_id  = $Hf->get_value('reg-target-atlas-id');
+    my $results_dir = $Hf->get_value("dir-result");
+    my $cmd = "cp $xform_path $results_dir";
+    my $ok = execute($do_save, "copy ${atlas_id} result image set", $cmd);
+    if (! $ok) {
+      error_out("Could not copy ${atlas_id} images: $cmd\n");
+    }
+
 
   return ($xform_path);
 }
@@ -137,7 +151,7 @@ print "reference_space for register all to altas: $domain_path\n";
   #`$cmd_resample`;
 
 
-   print('apply_affin_transofrm has run');
+   print('apply_affine_transform has run');
   # -- store result (registered image's) path in headfile
   #    first make a result_id: remove _strip_path suffix, leave prefix (eg T2star, T2W)
   my @parts = split "-", $to_deform_path_id;
