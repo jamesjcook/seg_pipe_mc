@@ -155,7 +155,7 @@ if ($interp eq '') {
 
 #my $cmd="$ants_app_dir/antsApplyTransforms -d 3 -i $to_deform_path -o $result_path -t [$transform_path, $i_opt] -r $to_deform_path --use-tightest-bounding-box -n $interp";
    
-my $cmd="$ants_app_dir/antsApplyTransforms -d 3 -i $to_deform_path -o $result_path -t [$transform_path, $i_opt1] -r $reference -n $interp";
+my $cmd="$ants_app_dir/antsApplyTransforms --float -d 3 -i $to_deform_path -o $result_path -t [$transform_path, $i_opt1] -r $reference -n $interp";
 
 
 
