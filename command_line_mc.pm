@@ -75,13 +75,6 @@ usage:
      -m  channels   : Channels considered for registration, Default 2, if more than this number 
                       of channels is specified they will not be used for registration, and will
                       have just the transforms applied. 
-     --suffix=suffix: Optional suffix for output directory, 
-                      WARNING: letters, numbers or underscore ONLY([a-zA-Z_0-9]). 
-     --threshold=theshold_code
-                    : the threshold_code to use in the matlab strip_mask.m function
-                      100-inf manual value
-                      1-99 threshold-zero from derivative histogram
-                      -1  manual selection using imagej
      -l  dir        : Label directory, default is set in setup files. 
                       Directory must contain <atlas_id>_labels.nii files, use -a (see below).
      -i  dir        : Registration Target, default is set in setup files. 
@@ -105,6 +98,20 @@ usage:
                       eg, this option is NOT FOR REGULAR USERS. 
      -d   direction : Optional argument for specifying the direction of registration, default uses inverse
                        use f or i : f forward transforms, i inverse transforms applied to atlas labels (default)
+  Extended options: 
+   -- designates extened name=value options separated by comas.
+   --[OPTIONNAME=OPTIONVALUE,OPTIONNAME2=OPTION2VALUE]
+    
+     suffix=suffix: Optional suffix for output directory, 
+                      WARNING: letters, numbers or underscore ONLY([a-zA-Z_0-9]). 
+     threshold=theshold_code
+                    : the threshold_code to use in the matlab strip_mask.m function
+                      100-inf manual value
+                      1-99 threshold-zero from derivative histogram
+                      -1  manual selection using imagej
+     EX1. --threhsold=2100
+     EX2. --suffix=2100
+     EX3. --threhsold=2100,suffix=\"testsuffix\"
 
 version: $PIPELINE_VERSION 
 
