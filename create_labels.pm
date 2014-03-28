@@ -379,13 +379,13 @@ sub warp_label_image {
 	      {
 	    #$cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN  -i $affine_xform\.txt $inverse_warp_xform\.nii.gz"; 
           # $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN  -i $affine_xform $inverse_warp_xform\.nii.gz"; 
-           $cmd = "$ants_app_dir/antsApplyTransforms -d 3 -i $to_deform -o $result_path -t [ $affine_xform, 1] -t $inverse_warp_xform\.nii.gz -r $warp_domain_path -n $interp";
+           $cmd = "$ants_app_dir/antsApplyTransforms -d 3 -i $to_deform -o $result_path -t [ $affine_xform, 1] -t $inverse_warp_xform\.nii.gz -r $warp_domain_path -n $interp --float";
 	      }
            elsif ($transform_direction eq 'f')
 	     {
 	      #$cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN $warp_xform\.nii.gz $affine_xform\.txt";
             #  $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN $warp_xform\.nii.gz $affine_xform";
-              $cmd = "$ants_app_dir/antsApplyTransforms -d 3 -i $to_deform -o $result_path -t $warp_xform\.nii.gz -t [ $affine_xform, 0] -r $warp_domain_path -n $interp";
+              $cmd = "$ants_app_dir/antsApplyTransforms -d 3 -i $to_deform -o $result_path -t $warp_xform\.nii.gz -t [ $affine_xform, 0] -r $warp_domain_path -n $interp --float";
 	     }
 
     
