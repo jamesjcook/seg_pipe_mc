@@ -34,7 +34,7 @@ my $gwhs_T1_path;
 
 my $DEBUG_GO = 1;
 my $debug_val = 5;
-my $SYNSETTING=2; #0.75; #%was 0.5; was 3
+my $SYNSETTING=0.5; #2; #0.75; #%was 0.5; was 3
 my $do_save = 1;
 #my $METRIC = "MI"; # could be any of the ants supported metrics, defined in main as a global, so bad to do that. should really chage that....
 
