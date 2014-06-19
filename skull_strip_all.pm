@@ -158,7 +158,11 @@ sub make_skull_mask {
                          # -1 use imagej (like evan and his dti pipe)
                          # 0-100 use threshold_zero 0-100, 
                          # 100-inf is set threshold.
-  my $args = "\'$template_path\', $dim_divisor, $mask_threshold, \'$mask_path\',$num_morphs , $morph_radius";
+  my $status_display_level=0;
+                         # 2 show lots of progress nii intermediates, and plot for threshold 0 finding
+                         # 1 show just the most relevent nii intermediates, and plot for threshold 0 finding
+                         # 0 show no figures.
+  my $args = "\'$template_path\', $dim_divisor, $mask_threshold, \'$mask_path\',$num_morphs , $morph_radius,$status_display_level";
   my $unique_id = "make_$PID\_";
   my $cmd =  make_matlab_command ($SKULL_MASK_MFUNCTION, $args, $unique_id, $Hf);
   if (! execute($ggo, "make_skull_mask", $cmd) ) {

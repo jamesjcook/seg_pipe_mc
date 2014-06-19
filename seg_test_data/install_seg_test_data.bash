@@ -33,7 +33,7 @@ else
   cp ./test.nii /$BIGGUS_DISKUS/TESTDATALabels-work/TESTDATA.nii
   cp ./test2.nii /$BIGGUS_DISKUS/TESTDATALabels-work/TESTDATA2.nii 
 fi
-find . -iname "*nii" -exec gzip {} \;
+# put test atlas's in place.
 read -p 'Where will atlas directories go?' atdir;
 cd phant_canonical_images #cd $atdir/phant_canonical_images
 ln -s phant_T1.nii phant_T2W.nii 
@@ -43,9 +43,18 @@ ln -s phant_T1.nii phant_dwi.nii
 ln -s phant_T1.nii phant_fa.nii 
 ln -s phant_T1.nii phant_e1.nii 
 cd ..
+cd phant_labels
+ln -s ../phant_canonical_images/phant_T1.nii phant_labels.nii
+cd ..
 cp -RPpn phant_canonical_images $atdir/phant_canonical_images
 cp -RPpn phant_labels $atdir/phant_labels
 
+echo "dont forget to use the following options for test runs. "
+echo "these are safe to copy paste toegether "
+echo "-i $atdir/phant_canonical_images\ "
+echo "-l $atdir/phant_labels"
+
+#rm test links from this tes folder 
 cd phant_canonical_images #cd $atdir/phant_canonical_images
 unlink phant_T2W.nii 
 unlink phant_T2Star.nii 
@@ -54,3 +63,8 @@ unlink phant_dwi.nii
 unlink phant_fa.nii 
 unlink phant_e1.nii 
 cd ..
+cd phant_labels
+unlink phant_labels.nii
+cd ..
+#re-gzip our test files
+find . -iname "*nii" -exec gzip {} \;
