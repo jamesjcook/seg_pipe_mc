@@ -35,12 +35,22 @@ else
 fi
 find . -iname "*nii" -exec gzip {} \;
 read -p 'Where will atlas directories go?' atdir;
-cp -RPpn phant_canonical_images $atdir/phant_canonical_images
-cp -RPpn phant_labels $atdir/phant_labels
-cd $atdir/phant_canonical_images
+cd phant_canonical_images #cd $atdir/phant_canonical_images
 ln -s phant_T1.nii phant_T2W.nii 
 ln -s phant_T1.nii phant_T2Star.nii 
 ln -s phant_T1.nii phant_adc.nii 
 ln -s phant_T1.nii phant_dwi.nii 
 ln -s phant_T1.nii phant_fa.nii 
 ln -s phant_T1.nii phant_e1.nii 
+cd ..
+cp -RPpn phant_canonical_images $atdir/phant_canonical_images
+cp -RPpn phant_labels $atdir/phant_labels
+
+cd phant_canonical_images #cd $atdir/phant_canonical_images
+unlink phant_T2W.nii 
+unlink phant_T2Star.nii 
+unlink phant_adc.nii 
+unlink phant_dwi.nii 
+unlink phant_fa.nii 
+unlink phant_e1.nii 
+cd ..
