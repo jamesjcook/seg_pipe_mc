@@ -121,17 +121,18 @@ single contrast, with existing data
 dual contrast, with existing data
 \tseg_pipe_mc -e E00001 E00002 11.test.01 11.test.01
 dual contrast, with exsiting nii data (using test data set up from the install)
-\tseg_pipe_mc -a phant -i /pipe_home/whs_references/phant_images \\
-                       -l /pipe_home/whs_references/phant_labels \\
+\tseg_pipe_mc -a phant -i \$WORKSTATION_DATA/atlas/phant_canonical_images \\
+                       -l \$WORKSTATION_DATA/atlas/phant_labels \\
                        -eb 01111111 TESTDATA TESTDATA2 11.test.01 11.test.01
 dual contrast, with existing data using non standard contrasts.
-\tseg_pipe_mc -a phant -i /pipe_home/whs_references/phant_images \\
-                       -l /pipe_home/whs_references/phant_labels \\
+\tseg_pipe_mc -a phant -i /\$WORKSTATION_DATA/atlas/phant_images \\
+                       -l /\$WORKSTATION_DATA/atlas/phant_labels \\
                        -q T1,T2W \\
                        -eb 01111111 TESTDATA TESTDATA2 11.test.01 11.test.01
-seg_pipe_mc -a DTI -i /Volumes/pipe_home/whs_references/whs_canonical_images/dti_average/ \
-                   -l /Volumes/pipe_home/whs_references/whs_labels/dti_average/ \
-                   -z -m 2 -q dwi,fa N50883_m0 N50883_m0 13.calakos.01 13.calakos.01
+ rapid test with real data
+seg_pipe_mc -ta DTI -i \$WORKSTATION_DATA/atlas/DTI/ \\
+                    -l \$WORKSTATION_DATA/atlas/DTI/ \\
+                    -z -m 2 -q dwi,fa N50883_m0 N50883_m0 13.calakos.01 13.calakos.01 
 
 "; 
   exit ( $BADEXIT );
