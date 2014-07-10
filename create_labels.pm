@@ -34,8 +34,7 @@ my $gwhs_T1_path;
 
 my $DEBUG_GO = 1;
 my $debug_val = 5;
-my $SYNSETTING=0.5; #2; #0.75; #%was 0.5; was 3
-my $do_save = 1;
+my $SYNSETTING=0.5; #0.5; #0.75; #%was 0.5; was 3
 #my $METRIC = "MI"; # could be any of the ants supported metrics, defined in main as a global, so bad to do that. should really chage that....
 
 
@@ -335,7 +334,6 @@ sub warp_label_image {
 # this should warp from atlas labels to the atlas registered input images. 
 # my ($affine_xform, $warp_xform, $Hf) = @_;
     my ($Hf) = @_;
-    my ($do_save)=1;#not needed anymore here
     print("\n\n\t$PM stage 3/$PM_stages \"warp_label_image\" \n\n\n") if ($debug_val >= 35) ;
 
     
