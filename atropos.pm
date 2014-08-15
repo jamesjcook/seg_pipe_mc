@@ -1,6 +1,6 @@
 #!/usr/local/pipeline-link/perl  
 # atropos.pm
-# Created 18 July, 2014 -- BJ Anderson CIVM (his first, so expext many naive and buggy behaviors)
+# Created 18 July, 2014 -- BJ Anderson CIVM (his first, so expect many naive and buggy behaviors)
 #
 #
 
@@ -49,15 +49,33 @@ our %alternative = (
 our @options = qw/d a b i p x c k m g o u w e l/;
 
 # -------------
-sub run_atropos {
+sub run_atropos_hf {
 # -------------
-    my ($result_dir) = @_;
+    my ($do_it,$Hf) = @_;
+    my $pf_path;
+    my $atropos_ch_index=$Hf->get_value('atropos_ch_index');
+    my $atropos_channel=$Hf->get_value('atropos_channel');
+#   my @channel_array=split(',',$Hf->get_value('runno_ch_commalist');
+    my $atropos_image_path  = $Hf->get_value ("${atropos_channel}-nii-path");
+    my $ants_app_dir = $Hf->get_value('engine-app-ants-dir');
+
+    if ($Hf->get_value('atropos_pf') ne "DEFAULT") {
+	$pf_path = $Hf->get_value('atropos_pf');
+    } else {
+	$pf_path = '';
+    }
+    if (! $Hf->get_value('mask_path') eq "NO_KEY") {
+ get_mask
+    }
+my $atropos_working_image=
+get_fa_image
+get_output_path
 }
 
 # -------------
 sub execute_atropos {
 # ------------ 
-    my ($do_it, $param_file_path) = @_;    
+    my ($do_it, $atropos_working_image,$param_file_path) = @_;    
     my $cmd;
     my $param_file = new Headfile ('ro', $param_file_path);
     my $check_status= $param_file->check();

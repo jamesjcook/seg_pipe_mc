@@ -94,8 +94,11 @@ my $coil_bias = $arghash{coil_bias};               # -c
 my $transform_direction = $arghash{transform_direction};
 my $pull_source_images = $arghash{data_pull};      # -e
 my $extra_runno_suffix = $arghash{extra_runno_suffix}; # --suffix=something 
-my $threshold_code     = $arghash{threshold_code};  # --threshold=number  
-my $do_bit_mask = $arghash{bit_mask};              # -b 11111111
+my $threshold_code     = $arghash{threshold_code}; # --threshold=number
+my $atropos_pf = $arghash{atropos};                # -f /somefile/ or "DEFAULT" or zero
+my $atropos_channel = $arghash{atropos_channel};   # set with extra argument in -q w/ -m
+my $atropos_ch_index = $arg_hash{atropos_ch_index};# corresponds to atropos channel in channel array
+my $do_bit_mask = $arghash{bit_mask};              # -b 111111111
 my $atlas_labels_dir = $arghash{atlas_labels_dir}; # -l /somedir/
 $nchannels = $arghash{registration_channels};      # -m this is subject to change
 my $atlas_id = $arghash{atlas_id};                 # -a this is subject to change
@@ -110,10 +113,10 @@ my $cmd_line = $arghash{cmd_line};
 
 
 if ( $noise_reduction eq "--NONE" ) {
-    $do_bit_mask=($do_bit_mask & "10111111"); # disable the noise do bit if we're not supposed to be noise correcting, this is only part of the enable code, see also the noise_reduction hf key
+    $do_bit_mask=($do_bit_mask & "101111111"); # disable the noise do bit if we're not supposed to be noise correcting, this is only part of the enable code, see also the noise_reduction hf key
 }# 0100000xor
 if ( $coil_bias == 0 ) {
-    $do_bit_mask=($do_bit_mask & "11011111"); # disable the coil do bit if we're not supposed to be coil bias correcting, this is only part of the enable code, see also the coil_bias hf key
+    $do_bit_mask=($do_bit_mask & "110111111"); # disable the coil do bit if we're not supposed to be coil bias correcting, this is only part of the enable code, see also the coil_bias hf key
 }# 0100000xor
 
 ###
@@ -294,6 +297,13 @@ $HfResult->set_value('port_atlas_mask'         , $port_atlas_mask);
 $HfResult->set_value('use_existing_mask'       , $use_existing_mask);
 $HfResult->set_value('threshold_code'          , $threshold_code);
 $HfResult->set_value('registration_channels'   , $nchannels);
+
+if ($atropos_pf) {
+    $HfResult->set_value('atropos_parameter_file', $atropos_pf);
+    $HfRestul->set_value('atropos_channel',$atropos_channel);
+    $HfResult->set_value('atropos_ch_index',$atropos_ch_index);
+}
+
 #get specid from data headfiles?
 $HfResult->set_value('U_specid'  , "NOT_HANDLED_YET");
 # --- set runno info in HfResult

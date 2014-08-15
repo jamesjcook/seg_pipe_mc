@@ -1,11 +1,11 @@
 # command_line_mc.pm
 # reads command line options for seg_pipe_mc, 
-# also contains ussage_message for its pipeline
+# also contains usage_message for its pipeline
 #
-# 12/03/08 jjc29 modified option vars to make more sence and match once used 
+# 12/03/08 jjc29 modified option vars to make more sense and match once used 
 #          in other sally style perl scripts,   -d changed to -e
 #                                               -f changed to -y so it matches -z 
-#          added example ussage under command_line so its more clear how this 
+#          added example usage under command_line so its more clear how this 
 #          is used and what it does
 # 11/01/21 slg Add cmd line options to change directories for canonical labels.
 
@@ -13,7 +13,7 @@
 #                   based on radish pipeline
 
 # be sure to change version:
-my $VERSION = "20130730";
+my $VERSION = "20130730";  ## BJ - UPDATE Need to update version when finished  making changes.
 
 #use File::Path;
 use strict;
@@ -28,7 +28,7 @@ use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT 
 
 my $NREQUIRED_ARGS = 3;
 #my $MAX_ARGS = 5;
-my $debug_val = 5;
+my $debug_val = 45; ## BJ - revert to "5" when done
 
 # ------------------
 sub usage_message_mc {
@@ -50,19 +50,22 @@ usage:
                           (all must be available in the archive). 
      runno_channel3_set : runno of the input channel3, default is a T2star image set. (optional)
                           (all must be available in the archive). 
-     subproj_inputs     : source subprojcet, subproject the input runnos were archived under.
+     subproj_inputs     : source subproject, subproject the input runnos were archived under.
                           ex 00.anything.00  (format is ##.<text>.##  or ([0-9]{2}[.]\w[.][0-9]{2}) )
      subproj_result     : destination subproject, subproject for the results (image, label) under. 
                           ex 00.anything.00
    options (all options are optional):
      -q             : Channel queue. A coma separated list of channels. 
-                      The default is T1,T2W,T2star. Suppored channels T1,T2W,T2star,adc,dwi,e1,fa
+                      The default is T1,T2W,T2star. Supported channels T1,T2W,T2star,adc,dwi,e1,fa
+                      Additionally, the channel used for atropos is specified here after the \"normal\"
+                      channels (as set by -m have been listed. If -m is not defined then the
+                      atropos channel will default to the first channel.
      -e             : Data exists locally, the data will not be copied from the archive.
      -c             : Coil Bias enable, N4 coil bias will be calculated and applied to all input.
                       NOTE: must be set for the bit mask value to have meaning. 
      -n  type       : Noise Correction, must specify type ex -n SUSAN, OR -n Bilateral,
                       NOTE: must be set for the bit mask value to have meaning. 
-     -x             : rorate to flip x, all input images will be rotated along y to flip x before use (this happens before niftify).
+     -x             : rotate to flip x, all input images will be rotated along y to flip x before use (this happens before niftify).
      -z             : rotate to flip z, all input images will be rotated along x to flip z before use (this happens before niftify).
      -r <n1:n2>     : rolling value to be used on the convert to nifti step, x:y roll. 
      -s <n1-n2>     : slice crop, value 1 is the first slice include, value 2 is the last slice included. 
@@ -72,9 +75,9 @@ usage:
                       registration of the atlas mask. The registered atlas mask will be used for skull stripping.
      -k             : Advanced option for masking,
                       use existing mask file named \"runno_channel1_manual_mask.nii\" in the work directory on disk.
-     -m  channels   : Channels considered for registration, Default 2, if more than this number 
-                      of channels is specified they will not be used for registration, and will
-                      have just the transforms applied. 
+     -m  channels   : Channels considered for registration, Default 2, if more than this number of channels is specified
+                      and the atropos flag -f is defined then the first extra channel will be used for atropos segmentation.
+                      Otherwise extra channels will not be used for registration, and will have just the transforms applied.
      -l  dir        : Label directory, default is set in setup files. 
                       Directory must contain <atlas_id>_labels.nii files, use -a (see below).
      -i  dir        : Registration Target, default is set in setup files. 
@@ -82,8 +85,12 @@ usage:
      -a  atlas_id   : Atlas_id tag for custom atlas.
                       Specifies the atlas_id part of the filename, \"whs\" for waxholmspace atlas,
                       otherwise defautls to \"atlas\".
-     -b do_bit_mask : Step skipping, default: 11111111 to do all 8 steps; 01111111 to skip first step, etc. 
-                      MUST ALWAYS USE 8 DIGITS, LESS DIGITS WILL GIVE UNEXPECTED RESULTS!
+     -f atropos_pf  : Run Atropos module for 3-label intensity segmentation and correlation.  atropos_pf is the path of  ## BJ - UPDATE
+                      the parameter file in \"parameter=value/n\" format; param file not needed and defaults will be
+                      used by specifying DEFAULT instead (or anything that is not a file path).
+     -b do_bit_mask : Step skipping, default: 111111111 to do all 8 steps; 01111111 to skip first step, etc. 
+                      MUST ALWAYS USE 9 DIGITS, LESS DIGITS WILL GIVE UNEXPECTED RESULTS! (Except in the case of
+                      not calling Atropos, where an 8 digit input will have a zero appended to the end of it.)
                       Steps: 
                       \tnifti,    - take civm raw format images and turn them into nifti.
                       \tbias,     - bias correction enabled with -c option.
@@ -92,7 +99,8 @@ usage:
                       \tstrip,    - skull strip calculation for first channel(applied ot all)
                       \treg_atlas,- rigid register to atlas
                       \tlabel,    - diffeomorphic register atlas label to image in atlas space.
-                      \tstat_calc.- calculate statistics of labels 
+                      \tstat_calc,- calculate statistics of labels 
+                      \tatropos.  - run 3-label Atropos segmentation and refine labels via cross-correlation ##BJ - UPDATE
                       Skipping is only for gross testing of commands created and not guaranteed to produce results.
      -t             : test mode, cuts all iterations for ants to 1x0x0x0, really fun with bit mask for rapid code testing. 
                       eg, this option is NOT FOR REGULAR USERS. 
@@ -134,7 +142,10 @@ seg_pipe_mc -ta DTI -i \$WORKSTATION_DATA/atlas/DTI/ \\
                     -l \$WORKSTATION_DATA/atlas/DTI/ \\
                     -z -m 2 -q dwi,fa N50883_m0 N50883_m0 13.calakos.01 13.calakos.01 
 
-"; 
+
+
+";
+## BJ - ADD Need example of calling with Atropos above, along with atropos help. 
   exit ( $BADEXIT );
 }
 
@@ -142,7 +153,7 @@ sub command_line_mc {
   if ($#ARGV+1 == 0) { usage_message_mc("");}
   print "unprocessed args: @ARGV\n" if ($debug_val >=35);;
   my %options = ();
-  if (! getopts('a:b:cd:ei:kl:m:n:opq:r:s:txz-:', \%options)) {
+  if (! getopts('a:b:cd:ef:i:kl:m:n:opq:r:s:txz-:', \%options)) { ## BJ - ADD Atropos option fghjuvw or y with ":" to look for parameter file
     print "Problem with command line options.\n";
     usage_message_mc("problem with getopts");
   } 
@@ -281,11 +292,33 @@ sub command_line_mc {
   $arg_hash{flip_z}=$flip_z;
   
 
-  ##opts with arguments
+  ##opts with arguments ## BJ - Moved "m" so that it would be processed before channel_order.
+  my $registration_channels=2;
+  if (defined $options{m}) {  # m
+     $registration_channels = $options{m};
+     $cmd_line =  "-m $registration_channels " . $cmd_line ;
+     print STDERR "  Registration channels specified, will use up to ${registration_channels} channels. (-m)\n";
+  } else {
+     print STDERR "  Registration channels not specified, using up to 2.\n";
+  }
+  $arg_hash{registration_channels}=$registration_channels;
+
   my $channel_order='T1,T2W,T2star';
+  my $atropos_channel;
+  my $atropos_index="0";
   if (defined $options{q}) {  # -q 
       $channel_order = $options{q};
       $cmd_line = "-q $channel_order " . $cmd_line;
+      @channel_array = split(',', $channel_order);
+      $number_of_input_channels = length(@channel_array)+1;
+      if ((defined $options{f}) and (defined $options{q}) and (defined $options{m})) { # The atropos channel is specified by an extra channel
+	  if ($registration_channels < $number_of_input_channels) {                    # in the channel_order, appearing directly after the number
+	      $atropos_channel=$channel_array[$registration_channels];                 # of channels "promised" by -m (aka $registration_channels).
+	      $atropos_index=$registration_channels;                                   # Also need to set the index for easy calling from channel array.
+	  } else {                                                                     # If this fails for any reason, atropos_channel will default 
+	      $atropos_channel=$channel_array[0];                                      # to the first given channel.
+	  } 
+     }                                                                                 # $atropos_channel will be passed externally only if -f is defined.   
   } else { 
       print STDERR "  Using default channel order $channel_order\n" if ($debug_val>=10);
   }
@@ -296,8 +329,7 @@ sub command_line_mc {
   my $roll_string='0:0';
   if (defined $options{r}) {  # -r 
       $roll_string = $options{r};
-      $cmd_line = "-r $roll_string " . $cmd_line;
-      if( $roll_string !~m/^[0-9]+:[0-9]+$/){
+      $cmd_line = "-r $roll_string " . $cmd_line;      if( $roll_string !~m/^[0-9]+:[0-9]+$/){
 	usage_message_mc("  Using roller requires two parameters separated by : no spaces"); 
       }
   } else { 
@@ -319,15 +351,7 @@ sub command_line_mc {
   }
   $arg_hash{transform_direction}=$transform_direction;
 
-  my $registration_channels=2;
-  if (defined $options{m}) {  # m
-     $registration_channels = $options{m};
-     $cmd_line =  "-m $registration_channels " . $cmd_line ;
-     print STDERR "  Registration channels specified, will use up to ${registration_channels} channels. (-m)\n";
-  } else {
-     print STDERR "  Registration channels not specified, using up to 2.\n";
-  }
-  $arg_hash{registration_channels}=$registration_channels;
+
 
   my $noise_reduction;
   if (defined $options{n}) {  # -n
@@ -341,11 +365,16 @@ sub command_line_mc {
   }
   $arg_hash{noise_reduction}=$noise_reduction;
 
-  my $bit_mask = "11111111";
+  my $bit_mask = "111111111"; # Bit mask now has 9 options instead of 8, in order to call or ignore the Atropos module.
   if (defined $options{b}) {  # -b
      $bit_mask = $options{b};
-     while( length("$bit_mask")<7){ 
-	 $bit_mask="0".$bit_mask;
+     if (! defined $options{f}) {      # It can't be assumed that the users who don't need Atropos will be used to accounting for it in their bit mask.
+	 if ( length($bit_mask)<9) {   # If bit mask length is 8 or shorter, it is assumed that user is NOT designating a bit for Atropos...
+	     $bit_mask=$bit_mask."0";  # ...so a zero is added to the end of the bit mask to ignore all Atropos-related aspects of the pipeline.
+	 }
+     }
+     while( length("$bit_mask")<8){    # Until the bit mask has a length of 9...
+	 $bit_mask="0".$bit_mask;      # ...zeros are prepended to it.
      }
      $cmd_line = "-b $bit_mask " . $cmd_line;
      print STDERR "  go bitmask: $bit_mask (set with -b)\n" if ($debug_val>=10);
@@ -386,8 +415,26 @@ sub command_line_mc {
   }
   $arg_hash{sliceselect}=$sliceselect;
 
+## BJ - Added code for atropos option ["f" for now (cuz we use the FA image)]
+  my $atropos=0;
+  if (defined $options{f}) {  # -f
+      $atropos = $options{f}; # Set to the parameter file path...
+      if (! -e $atropos) {    # ...unless it is not a valid file, then revert to default values.
+	  $atropos = "DEFAULT";
+	  print STDERR "  Running Atropos module with default parameters./n";	  
+      }
+      else {
+	  print STDERR "  Running Atropos module with parameters specified in $atropos./n";
+      }
+      $arg_hash{atropos_ch_index}=$atropos_index;
+      $arg_hash{atropos_channel}=$atropos_channel;   
+      $cmd_line = "-f $atropos " . $cmd_line;   
+   }
+   $arg_hash{atropos}=$atropos;
+     
+
   $arg_hash{threshold_code}=2;
-  if (defined $options{'-'}) { # extra ooptsion processing
+  if (defined $options{'-'}) { # extra options processing
       my $extra_runno_suffix = "--NONE";  
       my @extended_opts=split(',',$options{'-'});
 

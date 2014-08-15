@@ -36,6 +36,7 @@ require register_all_to_atlas;
 require create_labels;
 #require calculate_volumes;
 require calculate_statistics;
+require atropos;
 
 my $debug_val = 5;
 
@@ -59,7 +60,7 @@ sub label_brain_pipe {
   log_info ("$PM name: $NAME");
   log_info ("$PM desc: $DESC");
   log_info ("$PM version: $VERSION");
-  my ($nifti, $noise, $bias, $register, $strip, $atlas, $label, $statistics) =  split('', $do_bits);
+  my ($nifti, $noise, $bias, $register, $strip, $atlas, $label, $statistics,$atropos) =  split('', $do_bits);
   log_info ("pipeline step do bits: nifti:$nifti, bias:$bias, noise:$noise, register:$register, strip:$strip, atlasreg:$atlas, label:$label,statistics:$statistics\n");
 #step 1
   convert_all_to_nifti($nifti, $Hf_out);  
@@ -89,6 +90,9 @@ print("step 7 :\n create labels  \n");
 #step8
 print("step 8 :\n calculate statistics  \n");
   calculate_statistics($statistics, $Hf_out);
+#step9
+print("step 9:\n run atropos \n");
+  run_atropos_hf($atropos, $Hf_out);
 #put in results
   save_favorite_intermediates (1, $Hf_out);
   return;

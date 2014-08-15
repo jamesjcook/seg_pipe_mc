@@ -151,7 +151,7 @@ print "reference_space for register all to altas: $domain_path\n";
   #`$cmd_resample`;
 
 
-   print('apply_affine_transform has run');
+   print("apply_affine_transform has run\n\n");
   # -- store result (registered image's) path in headfile
   #    first make a result_id: remove _strip_path suffix, leave prefix (eg T2star, T2W)
   my @parts = split "-", $to_deform_path_id;
