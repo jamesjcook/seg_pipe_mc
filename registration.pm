@@ -60,8 +60,11 @@ $cmd = "$ants_app_dir/antsRegistration -d 3 -r [$A_path,$B_path,1] -m Mattes[$A_
 #      --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4";
     #  $cmd = "$ants_app_dir/ANTS 3 -m MSQ[ $A_path,$B_path,1,2] $opts1 -o $result_transform_path_base $opts2";
 
-     $cmd = "$ants_app_dir/antsRegistration -d 3 -t Affine[0.25] -c 3000x3000 -s 4x2vox -f 4x2 -u -m MeanSquares[$A_path,$B_path,1,4,random,0.3] -o $result_transform_path_base $opts2";
-     $cmd = "$ants_app_dir/antsRegistration -d 3 -r [$A_path,$B_path,1] -m MeanSquares[$A_path,$B_path,1,32,random,0.3] -t translation[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 -m MeanSquares[$A_path,$B_path,1,32,random,0.3] -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 -m MeanSquares[$A_path,$B_path,1,32,random,0.3] -t affine[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1-u 1 -z 1-o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4";
+      #$cmd = "$ants_app_dir/antsRegistration -d 3 -t Affine[0.25] -c 3000x3000 -s 4x2vox -f 4x2 -u -m MeanSquares[$A_path,$B_path,1,4,random,0.3] -o $result_transform_path_base $opts2";
+     $cmd = "$ants_app_dir/antsRegistration -d 3 -r [$A_path,$B_path,1] ".
+	 " -m MeanSquares[$A_path,$B_path,1,32,random,0.3] -t translation[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 ".
+	 " -m MeanSquares[$A_path,$B_path,1,32,random,0.3] -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 ".
+	 " -m MeanSquares[$A_path,$B_path,1,32,random,0.3] -t affine[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1-u 1 -z 1 -o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4";
   }
   else {
       error_out("$PM create_transform: don't understand xform_code: $xform_code\n");
