@@ -14,6 +14,8 @@ use strict;
 use Env;
 use lib split(':',$RADISH_PERL_LIB);
 require Headfile;
+use Getopt::Long qw(GetOptionsFromString);
+Getopt::Long::Configure ("bundling");
 
 our %defaults = (
     "d" => 3,
@@ -53,41 +55,56 @@ sub run_atropos_hf {
 # -------------
     my ($do_it,$Hf) = @_;
     my $pf_path;
-    my $atropos_ch_index=$Hf->get_value('atropos_ch_index');
-    my $atropos_channel=$Hf->get_value('atropos_channel');
-#   my @channel_array=split(',',$Hf->get_value('runno_ch_commalist');
+    my $atropos_channel= $Hf->get_value('atropos_channel');
     my $atropos_image_path  = $Hf->get_value ("${atropos_channel}-nii-path");
     my $ants_app_dir = $Hf->get_value('engine-app-ants-dir');
+    my ($atropos_output_base,$atropos_output_path,$dummy) = fileparts($atropos_image_path);
+    my $atropos_output = $atropos_output_path.$atropos_output_base."-atropos-labels.nii";
+    my $mask_path;
+    print STDOUT "  \$defaults{d} = $defaults{d}\n";
+ 
+ # %defaults = (
+ #	"a" => $atropos_image_path,
+ #       "o" => $atropos_output,
+ #   );
+    $defaults{"a"} =  $atropos_image_path;
+    $defaults{"o"} = $atropos_output;
 
-    if ($Hf->get_value('atropos_pf') ne "DEFAULT") {
+    print STDOUT "  \$defaults{d} = $defaults{d}\n";
+    if (-e $Hf->get_value('atropos_pf')) {
 	$pf_path = $Hf->get_value('atropos_pf');
     } else {
 	$pf_path = '';
     }
-    if (! $Hf->get_value('mask_path') eq "NO_KEY") {
- get_mask
+    if (defined $Hf->get_value("${atropos_channel}-strip-path")) {
+	$mask_path = $Hf->get_value("${atropos_channel}-strip-path");
+	$defaults{"x"} =  $mask_path;
     }
-my $atropos_working_image=
-get_fa_image
-get_output_path
+    (my $atropos_result, my $atropos_command) = execute_atropos($do_it,$pf_path );
+    print STDOUT "\$atropos_command = $atropos_command \n ran with result =  $atropos_result.\n";
+    return ($atropos_result);
 }
+    
 
 # -------------
 sub execute_atropos {
 # ------------ 
-    my ($do_it, $atropos_working_image,$param_file_path) = @_;    
+    my ($do_it, $param_file_path) = @_;    
     my $cmd;
-    my $param_file = new Headfile ('ro', $param_file_path);
-    my $check_status= $param_file->check();
-    if ( ! $check_status  ) { error_out("Parameter file not opened or does not exist");}
+    my $param_file;
+    if (-e $param_file_path) {
+	my $param_file = new Headfile ('ro', $param_file_path);
+	my $check_status= $param_file->check();
+	if ( ! $check_status  ) { error_out("Parameter file not opened or does not exist");}
     
-    my $read_status=$param_file->read_headfile;
-    if ( ! $read_status  ) { error_out("Unable to read parameter file located at: ".$param_file_path );}
-    
+	my $read_status=$param_file->read_headfile;
+	if ( ! $read_status  ) { error_out("Unable to read parameter file located at: ".$param_file_path );}
+    }
     if ($do_it) {
 	$cmd = build_command($param_file);
     }
-    return($cmd);
+    my $atropos_result = system($cmd);
+    return($atropos_result, $cmd);
 
 }
 
@@ -119,14 +136,46 @@ sub handle_atropos_option {
 # -------------
     my ($option, $param_file) = @_;
     my $cmd_to_execute = '';
-    my $parameter = search_param_file($option,$param_file );
-    if ($parameter ne '') {
-	$cmd_to_execute = '-'.$option.' '.$parameter;
-        return($cmd_to_execute);
+    my $parameter;
+    if (-e $param_file) {
+	$parameter = search_param_file($option,$param_file );
+	if ($parameter ne '') {
+	    $cmd_to_execute = '-'.$option.' '.$parameter;
+	    return($cmd_to_execute);
+	} else {
+	    return('');
+	}
+    } elsif (defined $defaults{$option}) {
+	    $parameter = $defaults{$option};
+	    $cmd_to_execute = '-'.$option.' '.$parameter;
+	    return($cmd_to_execute);
     } else {
 	return('');
     }
 }
+
+
+# -------------
+#sub command_line_to_param_file {
+## -------------
+#    my ($command_line) = @_;
+#    my @command_array = split('-',$command_line);
+#    my $param_file = new Headfile;
+#    for each my $option (@command_array) {
+#	if ( =~ m/^-/){
+#   
+#
+#if (-e $param_file) {
+#	my $parameter = search_param_file($option,$param_file );
+#	if ($parameter ne '') {
+#	    $cmd_to_execute = '-'.$option.' '.$parameter;
+#	    return($cmd_to_execute);
+#	} else {
+#	    return('');
+#	}
+#    } else 
+#}
+
 
 # -------------
 sub search_param_file {

@@ -2,6 +2,9 @@
 # reads command line options for seg_pipe_mc, 
 # also contains usage_message for its pipeline
 #
+# 14/08/16 rja20. Integrate Atropos module into pipeline. Replaced all active "STDERR" with "STDOUT".
+#
+#
 # 12/03/08 jjc29 modified option vars to make more sense and match once used 
 #          in other sally style perl scripts,   -d changed to -e
 #                                               -f changed to -y so it matches -z 
@@ -22,19 +25,46 @@ use Getopt::Std;
 # grab the variables from the seg_pipe.pm file in the script directory, all shared globals stored there, needs full testing to determine functionality
 use seg_pipe; # pipe info variable definitions
 use label_brain_pipe; # test_mode variable definiton
+use atropos; # handling of atropos parameters
 # the use vars line pulls variables deffinitons from any begin block in any module included. 
 use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT $test_mode );
-
+require Headfile;
 
 my $NREQUIRED_ARGS = 3;
 #my $MAX_ARGS = 5;
-my $debug_val = 45; ## BJ - revert to "5" when done
+my $debug_val = 5; ## BJ - revert to "5" when done
+
+my $allowed_atropos_channels;
 
 # ------------------
 sub usage_message_mc {
 # ------------------
 # $PIPELINE_VERSION, $PIPELINE_NAME, $PIPELINE_DESC
-  my ($msg) = @_;
+  my ($msg,$Hf) = @_;
+  my $allowed_channels;
+  my @allowed_atropos_channels_array;
+  my @allowed_atropos_s_or_p=('','');
+  if (($Hf->get_value('calling_program_name')) eq 'main_seg_pipe_mc.pl') {
+      $allowed_channels = allowed_channels($Hf,'allowed_channels');
+      $allowed_atropos_channels=allowed_channels($Hf,'allowed_atropos_channels');
+      if ($allowed_channels) {
+	  @allowed_atropos_channels_array = split(',',$allowed_atropos_channels);
+	  if ($#allowed_atropos_channels_array < 0) {
+	      @allowed_atropos_s_or_p = ('channels','are');
+	  } else {
+	      @allowed_atropos_s_or_p = ('channel','is');
+	  }
+      } else {
+	  $allowed_channels = 'T1,T2W,T2star,adc,dwi,e1,fa';
+	  $allowed_atropos_channels = 'fa';
+	  @allowed_atropos_s_or_p = ('channel','is');       
+      }
+  } else {
+       $allowed_channels = 'T1,T2W,T2star,adc,dwi,e1,fa';
+       $allowed_atropos_channels = 'fa';
+       @allowed_atropos_s_or_p = ('channel','is'); 
+  }
+
   print STDERR "$msg\n";
   print STDERR "$PIPELINE_NAME
   $PIPELINE_DESC
@@ -56,10 +86,7 @@ usage:
                           ex 00.anything.00
    options (all options are optional):
      -q             : Channel queue. A coma separated list of channels. 
-                      The default is T1,T2W,T2star. Supported channels T1,T2W,T2star,adc,dwi,e1,fa
-                      Additionally, the channel used for atropos is specified here after the \"normal\"
-                      channels (as set by -m have been listed. If -m is not defined then the
-                      atropos channel will default to the first channel.
+                      The default is T1,T2W,T2star. Supported channels are $allowed_channels.
      -e             : Data exists locally, the data will not be copied from the archive.
      -c             : Coil Bias enable, N4 coil bias will be calculated and applied to all input.
                       NOTE: must be set for the bit mask value to have meaning. 
@@ -85,9 +112,15 @@ usage:
      -a  atlas_id   : Atlas_id tag for custom atlas.
                       Specifies the atlas_id part of the filename, \"whs\" for waxholmspace atlas,
                       otherwise defautls to \"atlas\".
-     -f atropos_pf  : Run Atropos module for 3-label intensity segmentation and correlation.  atropos_pf is the path of  ## BJ - UPDATE
-                      the parameter file in \"parameter=value/n\" format; param file not needed and defaults will be
-                      used by specifying DEFAULT instead (or anything that is not a file path).
+     -f atropos_ch  : Run Atropos module for 3-label intensity segmentation and correlation, with channel defined by atropos_ch.
+                      Allowed $allowed_atropos_s_or_p[0] for use with Atropos $allowed_atropos_s_or_p[1]: $allowed_atropos_channels.  Currently (as of August 2014), the default parameters
+                      produce the following command line  \"                                             \## BJ-- Update 
+                      \"
+     -u user-defined: Atropos wil run with default parameters.  Any variation of this can be set by calling -u and either specifying
+        atropos       a path to a parameter file in \"parameter=value\/n\" format, or calling -u and the custom atropos command line 
+        parameters    parameters in double quotations.  For example, to manually set the dimensionality to 4, use : \"-d 4\".  In the
+                      latter case it is important to not use any double quotes within the original quotes.  If an invalid file path or
+                      string is entered, then Atropos will run with the default values.
      -b do_bit_mask : Step skipping, default: 111111111 to do all 8 steps; 01111111 to skip first step, etc. 
                       MUST ALWAYS USE 9 DIGITS, LESS DIGITS WILL GIVE UNEXPECTED RESULTS! (Except in the case of
                       not calling Atropos, where an 8 digit input will have a zero appended to the end of it.)
@@ -144,16 +177,32 @@ seg_pipe_mc -ta DTI -i \$WORKSTATION_DATA/atlas/DTI/ \\
 
 
 
-";
-## BJ - ADD Need example of calling with Atropos above, along with atropos help. 
+"; 
   exit ( $BADEXIT );
 }
 
+sub allowed_channels {
+    my ($Hf,$key) = @_;
+    my $pipeline_parameter_hf_name = 'seg_pipe_parameters.headfile'; # Default location of pipeline parameter file.
+    my $pipeline_parameter_hf_path = $Hf->get_value('calling_program_path');
+    my $pipeline_parameter_hf_full_path =  $pipeline_parameter_hf_path.'/'.$pipeline_parameter_hf_name;
+    if (-e $pipeline_parameter_hf_full_path) {    
+	my $pipeline_params = new Headfile ('ro', $pipeline_parameter_hf_full_path);
+	$pipeline_params->read_headfile;
+	my $allowed_channels = $pipeline_params->get_value($key);
+	return ($allowed_channels);
+    } else {
+	return (0);  # Zero is returned if the pipeline parameters headfile does not exist.
+     }
+}
+
+
 sub command_line_mc {
-  if ($#ARGV+1 == 0) { usage_message_mc("");}
-  print "unprocessed args: @ARGV\n" if ($debug_val >=35);;
+  my ($Hf)=@_;
+  if ($#ARGV<=0) { usage_message_mc("",$Hf);}
+  print "unprocessed args: @ARGV\n" if ($debug_val >=35);
   my %options = ();
-  if (! getopts('a:b:cd:ef:i:kl:m:n:opq:r:s:txz-:', \%options)) { ## BJ - ADD Atropos option fghjuvw or y with ":" to look for parameter file
+  if (! getopts('a:b:cd:ef:i:kl:m:n:opq:r:s:tu:xz-:', \%options)) {
     print "Problem with command line options.\n";
     usage_message_mc("problem with getopts");
   } 
@@ -222,10 +271,10 @@ sub command_line_mc {
   if (defined $options{e}) {  # -e
      $data_pull = 0;
      push @singleopts,'e';
-     print STDERR "  No image data to be copied from archive. Data should be available. (-e)\n" if ($debug_val>=10);
+     print STDOUT "  No image data to be copied from archive. Data should be available. (-e)\n" if ($debug_val>=10);
   } else {
      $data_pull = 1;
-     print STDERR "  Copying image data from archive.\n" if ($debug_val>=10);
+     print STDOUT "  Copying image data from archive.\n" if ($debug_val>=10);
   }
   $arg_hash{data_pull}=$data_pull;
 
@@ -233,7 +282,7 @@ sub command_line_mc {
   if (defined $options{c}) {  # -c
      $coil_bias = 1;
      push @singleopts,'c';
-     print STDERR "  Coil bias will be applied prior to registration. (-c)\n";
+     print STDOUT "  Coil bias will be applied prior to registration. (-c)\n";
   } else {
      $coil_bias = 0;
 #     print STDERR "  Coil bias not selected.\n";
@@ -244,7 +293,7 @@ sub command_line_mc {
   if (defined $options{p}) {  # -p
      $port_atlas_mask = 1;
      push @singleopts,'p';
-     print STDERR "  Porting atlas mask via registration to generated.(-p)\n";
+     print STDOUT "  Porting atlas mask via registration to generated.(-p)\n";
   } else {
      $port_atlas_mask = 0;
 #     print STDERR "  Port mask disabled\n";
@@ -255,7 +304,7 @@ sub command_line_mc {
   if (defined $options{k}) {  # -k
      $use_existing_mask = 1;
      push @singleopts,'k';
-     print STDERR "  Using existing mask named runno_channel1_manual_mask.nii. (-k)\n";
+     print STDOUT "  Using existing mask named runno_channel1_manual_mask.nii. (-k)\n";
   } else {
      $use_existing_mask = 0;
   }
@@ -264,7 +313,7 @@ sub command_line_mc {
   if (defined $options{t}) { #-t   testmode
       $test_mode = 1;
       push @singleopts,'t';
-      print STDERR "  TESTMODE enabled, will do very fast(incomplete) ANTS calls! (-t)\n" if ($debug_val>=10);
+      print STDOUT "  TESTMODE enabled, will do very fast(incomplete) ANTS calls! (-t)\n" if ($debug_val>=10);
   }
   print "testmode:$test_mode\n" if ($debug_val>=45); 
 
@@ -273,10 +322,10 @@ sub command_line_mc {
   if (defined $options{x}) {  # -x
      $flip_x = 1;
      push @singleopts,'x';
-     print STDERR "  Rotating input images for x. (-x)\n" if ($debug_val>=10);
+     print STDOUT "  Rotating input images for x. (-x)\n" if ($debug_val>=10);
   } else {
      $flip_x = 0;
-     print STDERR "  Not rotating input images for x.\n" if ($debug_val>=10);
+     print STDOUT "  Not rotating input images for x.\n" if ($debug_val>=10);
   }
   $arg_hash{flip_x}=$flip_x;
 
@@ -284,46 +333,57 @@ sub command_line_mc {
   if (defined $options{z}) {  # -z
      $flip_z = 1;
       push @singleopts,'z';
-     print STDERR "  Rotating input images for z. (-z)\n" if ($debug_val>=10);
+     print STDOUT "  Rotating input images for z. (-z)\n" if ($debug_val>=10);
   } else {
      $flip_z = 0;
-     print STDERR "  Not Rotating input images for z.\n" if ($debug_val>=10);
+     print STDOUT "  Not Rotating input images for z.\n" if ($debug_val>=10);
   }
   $arg_hash{flip_z}=$flip_z;
   
 
-  ##opts with arguments ## BJ - Moved "m" so that it would be processed before channel_order.
-  my $registration_channels=2;
-  if (defined $options{m}) {  # m
-     $registration_channels = $options{m};
-     $cmd_line =  "-m $registration_channels " . $cmd_line ;
-     print STDERR "  Registration channels specified, will use up to ${registration_channels} channels. (-m)\n";
-  } else {
-     print STDERR "  Registration channels not specified, using up to 2.\n";
-  }
-  $arg_hash{registration_channels}=$registration_channels;
+  ##opts with arguments
+ ## BJ - Added code for atropos option ["f" for now (cuz we use the FA image)].
+  my $atropos_channel;
+  if (defined $options{f}) {  # -f
+     $allowed_atropos_channels =  allowed_channels($Hf,'allowed_atropos_channels');
+     if (! $allowed_atropos_channels) {
+	 $allowed_atropos_channels = 'fa,';
+     } else {
+	 $allowed_atropos_channels = $allowed_atropos_channels.',';
+     }
+     $atropos_channel = $options{f};
+     my $channel_string = $atropos_channel.',';
+     if ($allowed_atropos_channels !~ m/($atropos_channel)(,){1}/) {
+	 error_out( " The channel \"".$atropos_channel."\" is currently not supported for use with Atropos. Pipeline not initialized. \n");
+     }
+      $arg_hash{atropos_channel}=$atropos_channel;   
+      $cmd_line = "-f $atropos_channel " . $cmd_line;   
+   }
 
   my $channel_order='T1,T2W,T2star';
-  my $atropos_channel;
-  my $atropos_index="0";
   if (defined $options{q}) {  # -q 
       $channel_order = $options{q};
+      if (defined $options{f}) {                          # BJ -- Need to add Atropos channel to channel queue if not already there, 
+	  if ($channel_order !~ m/($atropos_channel)/) {  #       so that the data will be properly processed before it is called.
+	     $channel_order=$channel_order.",",$atropos_channel;
+	     print STDOUT "  Atropos channel $atropos_channel added to end of channel queue.";
+	  }
+      } 
       $cmd_line = "-q $channel_order " . $cmd_line;
-      @channel_array = split(',', $channel_order);
-      $number_of_input_channels = length(@channel_array)+1;
-      if ((defined $options{f}) and (defined $options{q}) and (defined $options{m})) { # The atropos channel is specified by an extra channel
-	  if ($registration_channels < $number_of_input_channels) {                    # in the channel_order, appearing directly after the number
-	      $atropos_channel=$channel_array[$registration_channels];                 # of channels "promised" by -m (aka $registration_channels).
-	      $atropos_index=$registration_channels;                                   # Also need to set the index for easy calling from channel array.
-	  } else {                                                                     # If this fails for any reason, atropos_channel will default 
-	      $atropos_channel=$channel_array[0];                                      # to the first given channel.
-	  } 
-     }                                                                                 # $atropos_channel will be passed externally only if -f is defined.   
   } else { 
-      print STDERR "  Using default channel order $channel_order\n" if ($debug_val>=10);
+      print STDOUT "  Using default channel order $channel_order\n" if ($debug_val>=10);
   }
   $arg_hash{channel_order}=$channel_order;
 
+ my $registration_channels=2;
+  if (defined $options{m}) {  # m
+     $registration_channels = $options{m};
+     $cmd_line =  "-m $registration_channels " . $cmd_line ;
+     print STDOUT "  Registration channels specified, will use up to ${registration_channels} channels. (-m)\n";
+  } else {
+     print STDOUT "  Registration channels not specified, using up to 2.\n";
+  }
+  $arg_hash{registration_channels}=$registration_channels;
 
  ##opts with arguments
   my $roll_string='0:0';
@@ -333,7 +393,7 @@ sub command_line_mc {
 	usage_message_mc("  Using roller requires two parameters separated by : no spaces"); 
       }
   } else { 
-      print STDERR " No rolliing specified, leaving image in original position $roll_string\n" if ($debug_val>=10);
+      print STDOUT "  No rolliing specified, leaving image in original position $roll_string\n" if ($debug_val>=10);
   }
   $arg_hash{roll_string}=$roll_string;
 
@@ -347,7 +407,7 @@ sub command_line_mc {
       error_out("Bad transform direction, only f or i is valid.");
     }
   } else { 
-    print STDERR "  Using default transform direction $transform_direction\n" if ($debug_val>=10);
+    print STDOUT "  Using default transform direction $transform_direction\n" if ($debug_val>=10);
   }
   $arg_hash{transform_direction}=$transform_direction;
 
@@ -357,7 +417,7 @@ sub command_line_mc {
   if (defined $options{n}) {  # -n
      $noise_reduction = $options{n};
      $cmd_line = " -n $noise_reduction " . $cmd_line;
-     print STDERR "  Noise reduction using the $noise_reduction algorithm will be applied prior to registration. (-n)\n";
+     print STDOUT "  Noise reduction using the $noise_reduction algorithm will be applied prior to registration. (-n)\n";
   }
   else {
      $noise_reduction = "--NONE";
@@ -377,7 +437,7 @@ sub command_line_mc {
 	 $bit_mask="0".$bit_mask;      # ...zeros are prepended to it.
      }
      $cmd_line = "-b $bit_mask " . $cmd_line;
-     print STDERR "  go bitmask: $bit_mask (set with -b)\n" if ($debug_val>=10);
+     print STDOUT "  go bitmask: $bit_mask (set with -b)\n" if ($debug_val>=10);
   }
   $arg_hash{bit_mask} = $bit_mask;
 
@@ -407,31 +467,34 @@ sub command_line_mc {
   if (defined $options{s}) {  # -s
       $sliceselect = $options{s};
       $cmd_line =  "-s $sliceselect " . $cmd_line;
-      print STDERR "  Only slices $sliceselect will be used(-s)\n";
+      print STDOUT "  Only slices $sliceselect will be used(-s)\n";
   }
   else {
       $sliceselect = "all";
-      print STDERR "  Will use all slices.\n";
+      print STDOUT "  Will use all slices.\n";
   }
   $arg_hash{sliceselect}=$sliceselect;
 
-## BJ - Added code for atropos option ["f" for now (cuz we use the FA image)]
-  my $atropos=0;
-  if (defined $options{f}) {  # -f
-      $atropos = $options{f}; # Set to the parameter file path...
-      if (! -e $atropos) {    # ...unless it is not a valid file, then revert to default values.
-	  $atropos = "DEFAULT";
-	  print STDERR "  Running Atropos module with default parameters./n";	  
-      }
-      else {
-	  print STDERR "  Running Atropos module with parameters specified in $atropos./n";
-      }
-      $arg_hash{atropos_ch_index}=$atropos_index;
-      $arg_hash{atropos_channel}=$atropos_channel;   
-      $cmd_line = "-f $atropos " . $cmd_line;   
+
+
+## BJ - Added code for custom atropos options ["u" is for "user-defined", I suppose].
+  my $atropos_options;
+  my $atropos_options_validation;
+  if (defined $options{u}) {  # -u
+      $atropos_options = $options{u}; # Set to the parameter file path...
+#     if (! -e $atropos_options) {    # ...unless it is not a valid file, then check for a string...
+#	  $atropos_options_validation = 1;
+#	  if ($atropos_options){
+#	      error_out("\n  Invalid Atropos parameters entered.  Must be either a valid parameter file or the precise Atropos command line options in double quotes ");}
+#	  print STDOUT "  Running Atropos module with default parameters./n";	  
+#      }
+#      else {
+#	  print STDOUT "  Running Atropos module with parameters specified in $atropos./n";
+#      }
+      #$arg_hash{atropos_channel}=$atropos_channel;   
+      #$cmd_line = "-f $atropos " . $cmd_line;   
    }
-   $arg_hash{atropos}=$atropos;
-     
+   #$arg_hash{atropos}=$atropos;
 
   $arg_hash{threshold_code}=2;
   if (defined $options{'-'}) { # extra options processing
@@ -445,12 +508,12 @@ sub command_line_mc {
 	      $extra_runno_suffix=~s/(?:^ +)||(?: +$)//g ;
 #	      $extra_runno_suffix = $options{'-'};
 	      $cmd_line = " --suffix=$extra_runno_suffix " . $cmd_line;
-	      print STDERR "  Adding your suffix to result runno: --suffix=$extra_runno_suffix\n" if ($debug_val>=10);
+	      print STDOUT "  Adding your suffix to result runno: --suffix=$extra_runno_suffix\n" if ($debug_val>=10);
 	      $arg_hash{extra_runno_suffix}=$extra_runno_suffix;
 	  } elsif ($options{'-'} =~ /^threshold=.*/) {  # --threshold
 	      ($options{'-'},$arg_hash{threshold_code})=split('=',$options{'-'});
 	      $cmd_line = " --threshold=$arg_hash{threshold_code} " . $cmd_line;
-	      print STDERR "  using thrshold_code: --threshold=$arg_hash{threshold_code}\n" if ($debug_val>=10);
+	      print STDOUT "  using thrshold_code: --threshold=$arg_hash{threshold_code}\n" if ($debug_val>=10);
 	  } else { 
 	      error_out("Un recognized extended option -".$options{'-'}."\n");
 	  }

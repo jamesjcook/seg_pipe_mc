@@ -31,7 +31,7 @@ use File::Basename;
 use lib dirname(abs_path($0));
 use Env qw(RADISH_PERL_LIB);
 if (! defined($RADISH_PERL_LIB)) {
-    print STDERR "Cannot find good perl directories, quiting\n";
+    print STDERR "Cannot find good perl directories, quitting\n";
     exit $ERROR_EXIT;
 }
 
@@ -54,14 +54,21 @@ BEGIN {
     @label_brain_pipe::EXPORT_OK = qw($nchannels);
 }
 # most of these variables are defined in seg_pipe.pm as they are static, nchannels is defined here
-use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $GOODEXIT $BADEXIT $nchannels);
+use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $Temp_Hf $GOODEXIT $BADEXIT $nchannels);
 my $debug_val = 35;
+
+$Temp_Hf = new Headfile;
+my $pipeline_path=dirname(abs_path($0));
+my $pipeline_name='main_seg_pipe_mc.pl';
+$Temp_Hf->set_value('calling_program_path',$pipeline_path);
+$Temp_Hf->set_value('calling_program_name',$pipeline_name);
+$Temp_Hf->set_value('calling_program',$pipeline_path.'/'.$pipeline_name);
 
 
 ###
 # SCRIPT AND WORLD GLOBALS
 ###
-my $ANTSAFFINEMETRIC ="mattes"; # "MI"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by chaning the naem of this in the headfile, and looking up those different variable names in the pipe.
+my $ANTSAFFINEMETRIC ="mattes"; # "MI"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by changing the name of this in the headfile, and looking up those different variable names in the pipe.
 my $ANTSDIFFSyNMETRIC = "CC"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by chaning the naem of this in the headfile, and looking up those different variable names in the pipe.
 #$nchannels = 2; # number of channels to include in metrics, be nice to use all channels, but thats for the future, will have to edit lines containing this to be $#channel_list instead, to use all possible channels. perhaps we should do some kindof either or, another option flag telling the number of specified channels to use for the registration.
 # this has been set up as the -m option, will remain undocumented for now. 
@@ -77,7 +84,7 @@ my  $NIFTI_MFUNCTION = 'civm_to_nii';
 # ---- main ------------
 # pull inputs using the command_line_mc input parser.
 my $err_buffer = ''; #error message buffer, while parsing input its nice to see check multiple error independent error conditions, this way we can show as many as possible to user to fix at a time. 
-my $arg_hash_ref = command_line_mc(@ARGV);
+my $arg_hash_ref = command_line_mc($Temp_Hf);
 print "command_line_mc return val: $arg_hash_ref\n" if ($debug_val >=45);
 my %arghash=%{$arg_hash_ref};
  foreach my $k (keys %arghash) {
@@ -95,12 +102,11 @@ my $transform_direction = $arghash{transform_direction};
 my $pull_source_images = $arghash{data_pull};      # -e
 my $extra_runno_suffix = $arghash{extra_runno_suffix}; # --suffix=something 
 my $threshold_code     = $arghash{threshold_code}; # --threshold=number
-my $atropos_pf = $arghash{atropos};                # -f /somefile/ or "DEFAULT" or zero
-my $atropos_channel = $arghash{atropos_channel};   # set with extra argument in -q w/ -m
-my $atropos_ch_index = $arg_hash{atropos_ch_index};# corresponds to atropos channel in channel array
+my $atropos_pf = $arghash{atropos};                # -f /somefile/ or "DEFAULT" or zero--currently WRONG, need to fix
+my $atropos_channel = $arghash{atropos_channel};   # 
 my $do_bit_mask = $arghash{bit_mask};              # -b 111111111
 my $atlas_labels_dir = $arghash{atlas_labels_dir}; # -l /somedir/
-$nchannels = $arghash{registration_channels};      # -m this is subject to change
+   $nchannels = $arghash{registration_channels};   # -m this is subject to change
 my $atlas_id = $arghash{atlas_id};                 # -a this is subject to change
 #my $user_id = $arghash{user_id};
 my $atlas_images_dir = $arghash{atlas_images_dir}; # -i /somedir/
@@ -254,7 +260,8 @@ print
     subproj result: $subproject_result, 
     pull=$pull_source_images, flip_x=$flip_x, flip_z=$flip_z, noise_reduction:$noise_reduction, coil_bias=$coil_bias,
     registration_channels:$nchannels,
-    suffix=$extra_runno_suffix 
+    atropos_channel: $atropos_channel,
+    suffix=$extra_runno_suffix,
     port_atlas_mask=$port_atlas_mask,
     roll_string=$roll_string,
     use_existing_mask=$use_existing_mask,
@@ -298,10 +305,11 @@ $HfResult->set_value('use_existing_mask'       , $use_existing_mask);
 $HfResult->set_value('threshold_code'          , $threshold_code);
 $HfResult->set_value('registration_channels'   , $nchannels);
 
-if ($atropos_pf) {
-    $HfResult->set_value('atropos_parameter_file', $atropos_pf);
-    $HfRestul->set_value('atropos_channel',$atropos_channel);
-    $HfResult->set_value('atropos_ch_index',$atropos_ch_index);
+if ($atropos_channel) {
+    $HfResult->set_value('atropos_channel',$atropos_channel);
+    if ($atropos_pf) {
+	$HfResult->set_value('atropos_parameter_file', $atropos_pf);
+    }
 }
 
 #get specid from data headfiles?
