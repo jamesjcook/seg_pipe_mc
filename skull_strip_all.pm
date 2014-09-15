@@ -182,7 +182,8 @@ sub port_atlas_mask {
     my $ants_app_dir     = $Hf->get_value('engine-app-ants-dir');
     my $to_deform_path =  $mask_path;
 	
-    my $domain_path = $atlas_images_dir . "/${atlas_id}_maskMD.nii";
+    #my $domain_path = $atlas_images_dir . "/${atlas_id}_maskMD.nii";
+    my $domain_path = $atlas_images_dir . "/${atlas_id}_mask.nii";
 #    my $warp_domain_path=$domain_path;
     my $interp= '--use-NN';
 
