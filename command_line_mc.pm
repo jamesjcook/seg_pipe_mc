@@ -44,21 +44,25 @@ sub usage_message_mc {
   my $allowed_channels;
   my @allowed_atropos_channels_array;
   my @allowed_atropos_s_or_p=('','');
-  if (($Hf->get_value('calling_program_name')) eq 'main_seg_pipe_mc.pl') {
-      $allowed_channels = allowed_channels($Hf,'allowed_channels');
-      $allowed_atropos_channels=allowed_channels($Hf,'allowed_atropos_channels');
-      if ($allowed_channels) {
-	  @allowed_atropos_channels_array = split(',',$allowed_atropos_channels);
-	  if ($#allowed_atropos_channels_array < 0) {
-	      @allowed_atropos_s_or_p = ('channels','are');
+  if (defined $Hf) {
+      if (($Hf->get_value('calling_program_name')) eq 'main_seg_pipe_mc.pl') {
+	  $allowed_channels = allowed_channels($Hf,'allowed_channels');
+	  $allowed_atropos_channels = allowed_channels($Hf,'allowed_atropos_channels');
+#    my  $allowed_dti_channels = allowed_channels($Hf,'allowed_dti_channels');
+#    my  $allowed_non_dti_channels = allowed_channels($Hf,'allowed_non_dti_channels');
+	  if ($allowed_channels) {
+	      @allowed_atropos_channels_array = split(',',$allowed_atropos_channels);
+	      if ($#allowed_atropos_channels_array < 0) {
+		  @allowed_atropos_s_or_p = ('channels','are');
+	      } else {
+		  @allowed_atropos_s_or_p = ('channel','is');
+	      }
 	  } else {
-	      @allowed_atropos_s_or_p = ('channel','is');
+	      $allowed_channels = 'T1,T2W,T2star,adc,dwi,e1,fa';
+	      $allowed_atropos_channels = 'fa';
+	      @allowed_atropos_s_or_p = ('channel','is');       
 	  }
-      } else {
-	  $allowed_channels = 'T1,T2W,T2star,adc,dwi,e1,fa';
-	  $allowed_atropos_channels = 'fa';
-	  @allowed_atropos_s_or_p = ('channel','is');       
-      }
+      } 
   } else {
        $allowed_channels = 'T1,T2W,T2star,adc,dwi,e1,fa';
        $allowed_atropos_channels = 'fa';
@@ -145,14 +149,14 @@ usage:
     
      suffix=suffix: Optional suffix for output directory, 
                       WARNING: letters, numbers or underscore ONLY([a-zA-Z_0-9]). 
-     threshold=theshold_code
+     threshold=threshold_code
                     : the threshold_code to use in the matlab strip_mask.m function
                       100-inf manual value
                       1-99 threshold-zero from derivative histogram
                       -1  manual selection using imagej
-     EX1. --threhsold=2100
+     EX1. --threshold=2100
      EX2. --suffix=2100
-     EX3. --threhsold=2100,suffix=\"testsuffix\"
+     EX3. --threshold=2100,suffix=\"testsuffix\"
 
 version: $PIPELINE_VERSION 
 
@@ -222,46 +226,57 @@ sub command_line_mc {
   }
   my %arg_hash ;
   my $projlist='';
-  my $runnolist='';  # later it might be nice to set up the runno list to optionally grab a channel from the runno, like <channel_id>CIVMRUNNO 
-  if ($#ARGV < 0) { usage_message_mc("Missing required argument on command line"); }
-  my $projdest=pop @ARGV;
-  if ($#ARGV < 0) { usage_message_mc("Missing required argument on command line"); }
-  my $projsource=pop @ARGV;
-#  if ($#ARGV < 0) { usage_message_mc("Missing required argument on command line"); }
-#  my $user_id=pop @ARGV;
+
+  my ($projectsource,$projectdest,@runnolist)=@ARGV;  # follow up with check for undefined projects.
+  my $number_of_runnos = $#runnolist+1;
+  my $runnolist=join(',',@runnolist);
+
+  foreach my $what (@runnolist) {
+      print STDOUT "$what? \n" ;
+  }  
+
   my $err;
+  # Check to make sure everything is defined.
+  $err = "No run numbers defined" unless (defined $runnolist);
+  $err = $err . "Source project is not defined" unless (defined $projectsource);
+  $err = $err . "Destination project is not defined" unless (defined $projectdest);
+
+  error_out("$err") unless ( $err eq '');
+
+
   # add to the error string unless we have good proj source or dest
-  $err ="source project bad format! <$projsource>  " unless( $projsource =~ m/[0-9]{2}[.]\w{1,50}[.][0-9]+/ );
-  $err = $err . "destination project bad format!<$projdest>" unless( $projdest =~ m/[0-9]{2}[.]\w{1,50}[.][0-9]+/ );
-#   if ($user_id =~ m/[A-Z][0-9]{5,}[\w]*/x ) { # if user matches a runnumber, assumes its an error.
-#       my $id_warning="WARNING: no id specified on command line !" ;
-#       warn ( $id_warning);
-#       push (@ARGV, $user_id) ; 
-#       $user_id='UNDEFINED';
-#       
-#   }
-#   $arg_hash{user_id}=$user_id;
+  $err ="source project bad format! <$projectsource>  " unless( $projectsource =~ m/[0-9]{2}[.]\w{1,50}[.][0-9]+/ );
+  $err = $err . "destination project bad format!<$projectdest>" unless( $projectdest =~ m/[0-9]{2}[.]\w{1,50}[.][0-9]+/ );
+
+
   error_out("$err") unless( $err eq '' );
 
-  $projlist= $projsource . ',' . $projdest ;
+  $projlist= $projectsource . ',' . $projectdest ;
   print "$projlist : projin,projout\n" if ($debug_val>=45);
   $arg_hash{projlist}=$projlist;
-  
-  if ($#ARGV < 0) { usage_message_mc("Missing required argument on command line"); }
-  $runnolist=shift @ARGV;
-  while( $#ARGV>=0 ) { $runnolist=$runnolist . ',' . shift @ARGV ; } # dump optionally infinite runno's here.
   $arg_hash{runnolist}=$runnolist;
-
-
-  if ($#ARGV >  0 ) { 
-      my $argoutstring='';
-      for my $arg (@ARGV) {
-	  $argoutstring="${argoutstring}\n\t$arg";
-      }
-      usage_message_mc("Arguments remaining ($#ARGV+1) on command line $argoutstring"); 
+ 
+ while ($#ARGV >=  0 ) { 
+      pop(@ARGV);
   }
 
+## The following block was necessary with the old method of pulling the runnos and projsource/projdest from @ARGV
+#  if ($#ARGV >  0 ) { 
+#      my $argoutstring='';
+#      for my $arg (@ARGV) {
+#	  $argoutstring="${argoutstring}\n\t$arg";
+#      }
+#      usage_message_mc("Arguments remaining ($#ARGV+1) on command line $argoutstring"); 
+#  }
 
+  my @allowed_non_dti;
+  if (($Hf->get_value('calling_program_name')) eq 'main_seg_pipe_mc.pl') {
+    my  $allowed_channels = allowed_channels($Hf,'allowed_channels');
+    my  $allowed_atropos_channels = allowed_channels($Hf,'allowed_atropos_channels');
+    my  $allowed_dti_channels = allowed_channels($Hf,'allowed_dti_channels');
+    my  $allowed_non_dti_channels = allowed_channels($Hf,'allowed_non_dti_channels');
+        @allowed_non_dti = split(',',$allowed_non_dti_channels);
+  }
 
   #  -- handle cmd line options...
   ## single letter opts
@@ -363,6 +378,28 @@ sub command_line_mc {
   my $channel_order='T1,T2W,T2star';
   if (defined $options{q}) {  # -q 
       $channel_order = $options{q};
+      my $only_dti = 1; # It will be assumed that all the runs are dti-based until found otherwise.
+      my  @co = split(',',$channel_order);
+      my $co = $#co+1;
+      if ($co > $number_of_runnos) {
+	  foreach my $non_dti (@allowed_non_dti){  # Checking to see if any non-dti runs are included.
+	      if ($channel_order =~ m/($non_dti)/) {
+		  $only_dti = 0;
+	      }
+	  }
+	  if ($only_dti) {
+	      my $main_runno = $runnolist[0];
+	      my  $new_runnolist = $main_runno;
+	      for (my $b = 1; $b < $co; $b++) {
+		  $new_runnolist = $new_runnolist.','.$main_runno;
+	      }
+	      $arg_hash{runnolist} = $new_runnolist;
+	      print STDOUT "  Number of runnos less than number of channels in queue. All channels are dti, and will use the first runno specified. \n  $arg_hash{runnolist} \n";
+	  } else {
+	      error_out("Not enough runnos specified. \n");
+	  }
+      }
+ 
       if (defined $options{f}) {                          # BJ -- Need to add Atropos channel to channel queue if not already there, 
 	  if ($channel_order !~ m/($atropos_channel)/) {  #       so that the data will be properly processed before it is called.
 	     $channel_order=$channel_order.",",$atropos_channel;
