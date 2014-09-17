@@ -208,7 +208,7 @@ sub command_line_mc {
   my %options = ();
   if (! getopts('a:b:cd:ef:i:kl:m:n:opq:r:s:tu:xz-:', \%options)) {
     print "Problem with command line options.\n";
-    usage_message_mc("problem with getopts");
+    usage_message_mc("problem with getopts,$Hf");
   } 
   #print "$#ARGV+1 vs $NREQUIRED_ARGS\n";
   #print "processed: @ARGV\n";
@@ -217,7 +217,7 @@ sub command_line_mc {
       for my $arg (@ARGV) {
 	  $argoutstring="${argoutstring}\n\t$arg";
       }
-      usage_message_mc("Too few arguments($#ARGV+1) on command line $argoutstring"); 
+      usage_message_mc("Too few arguments($#ARGV+1) on command line $argoutstring",$Hf); 
   }
   # -- handle required params
   my $cmd_line = "";
@@ -227,7 +227,13 @@ sub command_line_mc {
   my %arg_hash ;
   my $projlist='';
 
-  my ($projectsource,$projectdest,@runnolist)=@ARGV;  # follow up with check for undefined projects.
+  my $projectdest = pop(@ARGV);
+  my $projectsource = pop(@ARGV);
+  my (@runnolist)=@ARGV;
+
+  while ($#ARGV >=  0 ) { 
+      pop(@ARGV);
+  }
   my $number_of_runnos = $#runnolist+1;
   my $runnolist=join(',',@runnolist);
 
@@ -256,10 +262,6 @@ sub command_line_mc {
   $arg_hash{projlist}=$projlist;
   $arg_hash{runnolist}=$runnolist;
  
- while ($#ARGV >=  0 ) { 
-      pop(@ARGV);
-  }
-
 ## The following block was necessary with the old method of pulling the runnos and projsource/projdest from @ARGV
 #  if ($#ARGV >  0 ) { 
 #      my $argoutstring='';
@@ -378,10 +380,9 @@ sub command_line_mc {
   my $channel_order='T1,T2W,T2star';
   if (defined $options{q}) {  # -q 
       $channel_order = $options{q};
+      my @channel_order = split(',',$channel_order);
       my $only_dti = 1; # It will be assumed that all the runs are dti-based until found otherwise.
-      my  @co = split(',',$channel_order);
-      my $co = $#co+1;
-      if ($co > $number_of_runnos) {
+      if ( $number_of_runnos == 1 ) {
 	  foreach my $non_dti (@allowed_non_dti){  # Checking to see if any non-dti runs are included.
 	      if ($channel_order =~ m/($non_dti)/) {
 		  $only_dti = 0;
@@ -390,7 +391,7 @@ sub command_line_mc {
 	  if ($only_dti) {
 	      my $main_runno = $runnolist[0];
 	      my  $new_runnolist = $main_runno;
-	      for (my $b = 1; $b < $co; $b++) {
+	      for (my $b = 1; $b < ($#channel_order+1); $b++) {
 		  $new_runnolist = $new_runnolist.','.$main_runno;
 	      }
 	      $arg_hash{runnolist} = $new_runnolist;
