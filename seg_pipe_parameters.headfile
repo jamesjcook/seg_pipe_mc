@@ -1,0 +1,4 @@
+allowed_channels=T1,T2W,T2star,adc,dwi,e1,e2,e3,fa
+allowed_atropos_channels=fa,tmi
+allowed_dti_channels=adc,dwi,e1,e2,e3,fa
+allowed_non_dti_channels=T1,T2W,T2star
