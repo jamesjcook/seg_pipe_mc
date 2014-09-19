@@ -34,40 +34,47 @@ my $NREQUIRED_ARGS = 3;
 #my $MAX_ARGS = 5;
 my $debug_val = 5; ## BJ - revert to "5" when done
 
-my $allowed_atropos_channels;
+  # Temporary headfile variables with default values (in case no headfile is passed). 
+  our $allowed_channels = 'T1,T2W,T2star,adc,dwi,e1,e2,e3,fa' ;
+  our $allowed_dti_channels = 'adc,dwi,e1,e2,e3,fa' ;
+  our $allowed_non_dti_channels = 'T1,T2W,T2star' ; 
+  our $allowed_atropos_channels = 'fa' ;
+  our @allowed_atropos_channels_array;
+  our @allowed_atropos_s_or_p = ('channel','is');
+
 
 # ------------------
 sub usage_message_mc {
 # ------------------
 # $PIPELINE_VERSION, $PIPELINE_NAME, $PIPELINE_DESC
-  my ($msg,$Hf) = @_;
-  my $allowed_channels;
-  my @allowed_atropos_channels_array;
-  my @allowed_atropos_s_or_p=('','');
-  if (defined $Hf) {
-      if (($Hf->get_value('calling_program_name')) eq 'main_seg_pipe_mc.pl') {
-	  $allowed_channels = allowed_channels($Hf,'allowed_channels');
-	  $allowed_atropos_channels = allowed_channels($Hf,'allowed_atropos_channels');
+  my ($msg) = @_;
+ # my $allowed_channels;
+ # my @allowed_atropos_channels_array;
+ # my @allowed_atropos_s_or_p=('','');
+ # if (defined $Hf) {
+ #     if (($Hf->get_value('calling_program_name')) eq 'main_seg_pipe_mc.pl') {
+ #          $allowed_channels = allowed_channels($Hf,'allowed_channels');
+ #	  $allowed_atropos_channels = allowed_channels($Hf,'allowed_atropos_channels');
 #    my  $allowed_dti_channels = allowed_channels($Hf,'allowed_dti_channels');
 #    my  $allowed_non_dti_channels = allowed_channels($Hf,'allowed_non_dti_channels');
-	  if ($allowed_channels) {
-	      @allowed_atropos_channels_array = split(',',$allowed_atropos_channels);
-	      if ($#allowed_atropos_channels_array < 0) {
-		  @allowed_atropos_s_or_p = ('channels','are');
-	      } else {
-		  @allowed_atropos_s_or_p = ('channel','is');
-	      }
-	  } else {
-	      $allowed_channels = 'T1,T2W,T2star,adc,dwi,e1,fa';
-	      $allowed_atropos_channels = 'fa';
-	      @allowed_atropos_s_or_p = ('channel','is');       
-	  }
-      } 
-  } else {
-       $allowed_channels = 'T1,T2W,T2star,adc,dwi,e1,fa';
-       $allowed_atropos_channels = 'fa';
-       @allowed_atropos_s_or_p = ('channel','is'); 
-  }
+ #	  if ($allowed_channels) {
+ #            @allowed_atropos_channels_array = split(',',$allowed_atropos_channels);
+ #	      if ($#allowed_atropos_channels_array < 0) {
+ #		  @allowed_atropos_s_or_p = ('channels','are');
+ #	      } else {
+ #		  @allowed_atropos_s_or_p = ('channel','is');
+ #	      }
+ #	  } else {
+ #	      $allowed_channels = 'T1,T2W,T2star,adc,dwi,e1,fa';
+ #	      $allowed_atropos_channels = 'fa';
+ #	      @allowed_atropos_s_or_p = ('channel','is');       
+ #	  }
+ #     } 
+ # } else {
+ #      $allowed_channels = 'T1,T2W,T2star,adc,dwi,e1,fa';
+ #      $allowed_atropos_channels = 'fa';
+ #      @allowed_atropos_s_or_p = ('channel','is'); 
+ # }
 
   print STDERR "$msg\n";
   print STDERR "$PIPELINE_NAME
@@ -83,14 +90,26 @@ usage:
      runno_channel2_set : runno of the input channel2, default is a T2W image set. (optional)
                           (all must be available in the archive). 
      runno_channel3_set : runno of the input channel3, default is a T2star image set. (optional)
-                          (all must be available in the archive). 
+                          (all must be available in the archive).
+
+                ------ OR ------
+
+     runno_DTI_channels : a single runno of a DTI protocal can be used in place of multiple runno_channels
+                          if all channels are from the same DTI runno. Currently acceptable DTI
+                          channels are $allowed_dti_channels.
+                          Will fail if any of the following are included in -q: $allowed_non_dti_channels.
+ 
+
      subproj_inputs     : source subproject, subproject the input runnos were archived under.
                           ex 00.anything.00  (format is ##.<text>.##  or ([0-9]{2}[.]\w[.][0-9]{2}) )
      subproj_result     : destination subproject, subproject for the results (image, label) under. 
                           ex 00.anything.00
    options (all options are optional):
-     -q             : Channel queue. A coma separated list of channels. 
+     -q             : Channel queue. A comma separated list of channels. 
                       The default is T1,T2W,T2star. Supported channels are $allowed_channels.
+                      If all channels are DTI-based and have the same runno, then one (and only one) instance
+                      of that runno can be used. Also, if co-registration is automatically turned off for
+                      DTI channels with the same runno.
      -e             : Data exists locally, the data will not be copied from the archive.
      -c             : Coil Bias enable, N4 coil bias will be calculated and applied to all input.
                       NOTE: must be set for the bit mask value to have meaning. 
@@ -118,7 +137,7 @@ usage:
                       otherwise defautls to \"atlas\".
      -f atropos_ch  : Run Atropos module for 3-label intensity segmentation and correlation, with channel defined by atropos_ch.
                       Allowed $allowed_atropos_s_or_p[0] for use with Atropos $allowed_atropos_s_or_p[1]: $allowed_atropos_channels.  Currently (as of August 2014), the default parameters
-                      produce the following command line  \"                                             \## BJ-- Update 
+                      produce the following command line  \" (UNDER CONSTRUCTION)                                            \## BJ-- Update 
                       \"
      -u user-defined: Atropos wil run with default parameters.  Any variation of this can be set by calling -u and either specifying
         atropos       a path to a parameter file in \"parameter=value\/n\" format, or calling -u and the custom atropos command line 
@@ -133,7 +152,7 @@ usage:
                       \tbias,     - bias correction enabled with -c option.
                       \tnoise,    - noise correction enabled with -n option, ignored if -n not specified
                       \treg_ch1,  - rigid register to first channel
-                      \tstrip,    - skull strip calculation for first channel(applied ot all)
+                      \tstrip,    - skull strip calculation for first channel(applied to all)
                       \treg_atlas,- rigid register to atlas
                       \tlabel,    - diffeomorphic register atlas label to image in atlas space.
                       \tstat_calc,- calculate statistics of labels 
@@ -175,9 +194,15 @@ dual contrast, with existing data using non standard contrasts.
                        -q T1,T2W \\
                        -eb 01111111 TESTDATA TESTDATA2 11.test.01 11.test.01
  rapid test with real data
-seg_pipe_mc -ta DTI -i \$WORKSTATION_DATA/atlas/DTI/ \\
+\tseg_pipe_mc -ta DTI -i \$WORKSTATION_DATA/atlas/DTI/ \\
                     -l \$WORKSTATION_DATA/atlas/DTI/ \\
                     -z -m 2 -q dwi,fa N50883_m0 N50883_m0 13.calakos.01 13.calakos.01 
+
+  OR, since both channels are DTI, runno can be entered only once:
+\tseg_pipe_mc -ta DTI -i \$WORKSTATION_DATA/atlas/DTI/ \\
+                    -l \$WORKSTATION_DATA/atlas/DTI/ \\
+                    -z -m 2 -q dwi,fa N50883_m0 13.calakos.01 13.calakos.01 
+
 
 
 
@@ -203,12 +228,32 @@ sub allowed_channels {
 
 sub command_line_mc {
   my ($Hf)=@_;
-  if ($#ARGV<=0) { usage_message_mc("",$Hf);}
+  my @allowed_non_dti;
+
+  # If defined, 'seg_pipe_parameters.headfile' will set the various sets of allowed channels.
+  if (defined $Hf) {
+      if (($Hf->get_value('calling_program_name')) eq 'main_seg_pipe_mc.pl') {
+	  $allowed_channels = allowed_channels($Hf,'allowed_channels');
+	  $allowed_atropos_channels = allowed_channels($Hf,'allowed_atropos_channels');
+	  $allowed_dti_channels = allowed_channels($Hf,'allowed_dti_channels');
+	  $allowed_non_dti_channels = allowed_channels($Hf,'allowed_non_dti_channels');
+       
+	  @allowed_atropos_channels_array = split(',',$allowed_atropos_channels);
+	  if ($#allowed_atropos_channels_array > 0) {
+	      @allowed_atropos_s_or_p = ('channels','are');
+	  } else {
+	      @allowed_atropos_s_or_p = ('channel','is');
+	  }
+      }
+  } 
+
+
+  if ($#ARGV<=0) { usage_message_mc("");}
   print "unprocessed args: @ARGV\n" if ($debug_val >=35);
   my %options = ();
   if (! getopts('a:b:cd:ef:i:kl:m:n:opq:r:s:tu:xz-:', \%options)) {
     print "Problem with command line options.\n";
-    usage_message_mc("problem with getopts,$Hf");
+    usage_message_mc("problem with getopts");
   } 
   #print "$#ARGV+1 vs $NREQUIRED_ARGS\n";
   #print "processed: @ARGV\n";
@@ -217,7 +262,7 @@ sub command_line_mc {
       for my $arg (@ARGV) {
 	  $argoutstring="${argoutstring}\n\t$arg";
       }
-      usage_message_mc("Too few arguments($#ARGV+1) on command line $argoutstring",$Hf); 
+      usage_message_mc("Too few arguments($#ARGV+1) on command line $argoutstring"); 
   }
   # -- handle required params
   my $cmd_line = "";
@@ -236,10 +281,6 @@ sub command_line_mc {
   }
   my $number_of_runnos = $#runnolist+1;
   my $runnolist=join(',',@runnolist);
-
-  foreach my $what (@runnolist) {
-      print STDOUT "$what? \n" ;
-  }  
 
   my $err;
   # Check to make sure everything is defined.
@@ -260,25 +301,16 @@ sub command_line_mc {
   $projlist= $projectsource . ',' . $projectdest ;
   print "$projlist : projin,projout\n" if ($debug_val>=45);
   $arg_hash{projlist}=$projlist;
-  $arg_hash{runnolist}=$runnolist;
- 
-## The following block was necessary with the old method of pulling the runnos and projsource/projdest from @ARGV
-#  if ($#ARGV >  0 ) { 
-#      my $argoutstring='';
-#      for my $arg (@ARGV) {
-#	  $argoutstring="${argoutstring}\n\t$arg";
-#      }
-#      usage_message_mc("Arguments remaining ($#ARGV+1) on command line $argoutstring"); 
-#  }
+  $arg_hash{runnolist}=$runnolist; 
 
-  my @allowed_non_dti;
   if (($Hf->get_value('calling_program_name')) eq 'main_seg_pipe_mc.pl') {
-    my  $allowed_channels = allowed_channels($Hf,'allowed_channels');
-    my  $allowed_atropos_channels = allowed_channels($Hf,'allowed_atropos_channels');
     my  $allowed_dti_channels = allowed_channels($Hf,'allowed_dti_channels');
     my  $allowed_non_dti_channels = allowed_channels($Hf,'allowed_non_dti_channels');
-        @allowed_non_dti = split(',',$allowed_non_dti_channels);
+        
+  } else {
+
   }
+  @allowed_non_dti = split(',',$allowed_non_dti_channels);
 
   #  -- handle cmd line options...
   ## single letter opts
@@ -362,30 +394,39 @@ sub command_line_mc {
  ## BJ - Added code for atropos option ["f" for now (cuz we use the FA image)].
   my $atropos_channel;
   if (defined $options{f}) {  # -f
-     $allowed_atropos_channels =  allowed_channels($Hf,'allowed_atropos_channels');
-     if (! $allowed_atropos_channels) {
-	 $allowed_atropos_channels = 'fa,';
-     } else {
-	 $allowed_atropos_channels = $allowed_atropos_channels.',';
-     }
      $atropos_channel = $options{f};
-     my $channel_string = $atropos_channel.',';
-     if ($allowed_atropos_channels !~ m/($atropos_channel)(,){1}/) {
-	 error_out( " The channel \"".$atropos_channel."\" is currently not supported for use with Atropos. Pipeline not initialized. \n");
+
+     if ((",$allowed_atropos_channels,") =~ m/^.*((,)($atropos_channel)(,)).*$/) { # The comma sandwich is to ensure exact matches--so T2 won't match T2star, etc.
+	 print STDOUT " Current Atropos channel is $atropos_channel. \n  "
+     } else {
+	 usage_message_mc( " The channel \"".$atropos_channel."\" is currently not supported for use with Atropos. Pipeline not initialized. \n");
      }
       $arg_hash{atropos_channel}=$atropos_channel;   
       $cmd_line = "-f $atropos_channel " . $cmd_line;   
    }
 
   my $channel_order='T1,T2W,T2star';
+  my  $ch_err_msg = '';
   if (defined $options{q}) {  # -q 
       $channel_order = $options{q};
       my @channel_order = split(',',$channel_order);
+      foreach my $ch (@channel_order) {
+	  if (",$allowed_channels," !~ m/^.*(,)($ch)(,).*$/) {
+	      $ch_err_msg = $ch_err_msg.$ch.' ';
+	  }
+      }
+
+      if ($ch_err_msg ne '') {
+	  usage_message_mc("Error with command line option -q.  Invalid channel(s) specified: $ch_err_msg"); 
+      }
+
       my $only_dti = 1; # It will be assumed that all the runs are dti-based until found otherwise.
       if ( $number_of_runnos == 1 ) {
-	  foreach my $non_dti (@allowed_non_dti){  # Checking to see if any non-dti runs are included.
-	      if ($channel_order =~ m/($non_dti)/) {
+	  my $called_non_dti='';
+	  foreach my $non_dti (@allowed_non_dti){  # Checking to see if any non-dti runs are included.	      
+	      if (",$channel_order," =~ m/^.*((,)($non_dti)(,))/) {
 		  $only_dti = 0;
+		  $called_non_dti = $called_non_dti.' '.$non_dti;
 	      }
 	  }
 	  if ($only_dti) {
@@ -395,21 +436,23 @@ sub command_line_mc {
 		  $new_runnolist = $new_runnolist.','.$main_runno;
 	      }
 	      $arg_hash{runnolist} = $new_runnolist;
-	      print STDOUT "  Number of runnos less than number of channels in queue. All channels are dti, and will use the first runno specified. \n  $arg_hash{runnolist} \n";
+	      print STDOUT "  Number of runnos less than number of channels in queue. All channels are dti, and will use the first runno specified. \n New runno_list = $arg_hash{runnolist} . \n";
 	  } else {
-	      error_out("Not enough runnos specified. \n");
+   	      usage_message_mc("  Not enough runnos specified. If using only DTI channels with the same runno, then it is 
+  allowable to enter in that runno number exactly one time.  Otherise, the number of runnos entered must match number of channels in -q.  /n  Non-dti channels in -q: $called_non_dti. \n  ");
 	  }
       }
  
       if (defined $options{f}) {                          # BJ -- Need to add Atropos channel to channel queue if not already there, 
-	  if ($channel_order !~ m/($atropos_channel)/) {  #       so that the data will be properly processed before it is called.
+	  if (",$channel_order," !~ m/^.*((,)($atropos_channel)(,)).*$/) { 
 	     $channel_order=$channel_order.",",$atropos_channel;
 	     print STDOUT "  Atropos channel $atropos_channel added to end of channel queue.";
 	  }
-      } 
-      $cmd_line = "-q $channel_order " . $cmd_line;
-  } else { 
-      print STDOUT "  Using default channel order $channel_order\n" if ($debug_val>=10);
+      #} 
+	  $cmd_line = "-q $channel_order " . $cmd_line;
+      } else { 
+	  print STDOUT "  Using default channel order $channel_order\n" if ($debug_val>=10);
+      }
   }
   $arg_hash{channel_order}=$channel_order;
 
@@ -466,9 +509,11 @@ sub command_line_mc {
   my $bit_mask = "111111111"; # Bit mask now has 9 options instead of 8, in order to call or ignore the Atropos module.
   if (defined $options{b}) {  # -b
      $bit_mask = $options{b};
-     if (! defined $options{f}) {      # It can't be assumed that the users who don't need Atropos will be used to accounting for it in their bit mask.
-	 if ( length($bit_mask)<9) {   # If bit mask length is 8 or shorter, it is assumed that user is NOT designating a bit for Atropos...
-	     $bit_mask=$bit_mask."0";  # ...so a zero is added to the end of the bit mask to ignore all Atropos-related aspects of the pipeline.
+     if (! defined $options{f}) {                 # It can't be assumed that the users who don't need Atropos will be used to accounting for it in their bit mask.
+	 if ( length($bit_mask)<9) {              # If bit mask length is 8 or shorter, it is assumed that user is NOT designating a bit for Atropos...
+	     #my $stat_bit = pop($bit_mask);       # ...so the bit for statistics is popped off the end...
+	     #$bit_mask=$bit_mask."0".$stat_bit ;  # ...and bit 8 is set to zero to ignore all Atropos-related aspects of the pipeline, and stat_bit is added at the end.
+	     $bit_mask = $bit_mask."0";  # Currently Atropos is at the end of seg_pipe...will switch to two lines above once we move it to Step 8 and stats to Step 9.
 	 }
      }
      while( length("$bit_mask")<8){    # Until the bit mask has a length of 9...
@@ -515,7 +560,7 @@ sub command_line_mc {
 
 
 
-## BJ - Added code for custom atropos options ["u" is for "user-defined", I suppose].
+## BJ - Added code for custom atropos options ["u" is for "user-defined", I suppose].  ##Needs to be revisited!!!
   my $atropos_options;
   my $atropos_options_validation;
   if (defined $options{u}) {  # -u
