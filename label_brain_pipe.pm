@@ -22,6 +22,7 @@ my $DESC = "warps atlas labels";
 my $PM = "label_brain_pipe.pm";
 
 use strict;
+use warnings;
 use Env qw(PIPELINE_SCRIPT_DIR);
 require Headfile;
 require image_math;
@@ -60,7 +61,7 @@ sub label_brain_pipe {
   log_info ("$PM name: $NAME");
   log_info ("$PM desc: $DESC");
   log_info ("$PM version: $VERSION");
-  my ($nifti, $noise, $bias, $register, $strip, $atlas, $label, $statistics,$atropos) =  split('', $do_bits);
+  my ($nifti, $noise, $bias, $register, $strip, $atlas, $label,$atropos, $statistics) =  split('', $do_bits);
   log_info ("pipeline step do bits: nifti:$nifti, bias:$bias, noise:$noise, register:$register, strip:$strip, atlasreg:$atlas, label:$label,statistics:$statistics\n");
 #step 1
   convert_all_to_nifti($nifti, $Hf_out);  
@@ -88,11 +89,12 @@ sub label_brain_pipe {
 print("step 7 :\n create labels  \n");
   create_labels($label, $Hf_out); # diffeo to atlas of the rigid register.
 #step8
-print("step 8 :\n calculate statistics  \n");
-  calculate_statistics($statistics, $Hf_out);
-#step9
-print("step 9:\n run atropos \n");
+print("step 8:\n run atropos \n");
   run_atropos_hf($atropos, $Hf_out);
+#step9
+print("step 9 :\n calculate statistics  \n");
+  calculate_statistics($statistics, $Hf_out);
+
 #put in results
   save_favorite_intermediates (1, $Hf_out);
   return;

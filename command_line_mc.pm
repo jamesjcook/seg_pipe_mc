@@ -83,7 +83,7 @@ INPUT:  civmraw from archive.
 OUTPUT: input images as nifti in atlas space, with 8-bit nifti labels.
 NOTE: For nifti inputs see the example directory in hostnamespace.
 usage:
-  seg_pipe \<options\> runno_channel1  [runno_channel2]  [runno_channel3]  subproj_inputs  subproj_result
+  seg_pipe \<options\> runno_channel1 -OR- runno_Dti_channels  [runno_channel2]  [runno_channel3]  subproj_inputs  subproj_result
     required args:
      runno_channel1_set : runno of the input channel1, default is a T1 image set 
                           (all must be available in the archive). 
@@ -134,7 +134,7 @@ usage:
                       Directory must contain <atlas_id>_<channel>.nii files, use -a (see below).
      -a  atlas_id   : Atlas_id tag for custom atlas.
                       Specifies the atlas_id part of the filename, \"whs\" for waxholmspace atlas,
-                      otherwise defautls to \"atlas\".
+                      otherwise defaults to \"atlas\".
      -f atropos_ch  : Run Atropos module for 3-label intensity segmentation and correlation, with channel defined by atropos_ch.
                       Allowed $allowed_atropos_s_or_p[0] for use with Atropos $allowed_atropos_s_or_p[1]: $allowed_atropos_channels.  Currently (as of August 2014), the default parameters
                       produce the following command line  \" (UNDER CONSTRUCTION)                                            \## BJ-- Update 
@@ -144,9 +144,9 @@ usage:
         parameters    parameters in double quotations.  For example, to manually set the dimensionality to 4, use : \"-d 4\".  In the
                       latter case it is important to not use any double quotes within the original quotes.  If an invalid file path or
                       string is entered, then Atropos will run with the default values.
-     -b do_bit_mask : Step skipping, default: 111111111 to do all 8 steps; 01111111 to skip first step, etc. 
-                      MUST ALWAYS USE 9 DIGITS, LESS DIGITS WILL GIVE UNEXPECTED RESULTS! (Except in the case of
-                      not calling Atropos, where an 8 digit input will have a zero appended to the end of it.)
+     -b do_bit_mask : Step skipping, default: 111111111 to do all 9 steps; 01111111 to skip first step, etc. 
+                      MUST ALWAYS USE 9 DIGITS, LESS DIGITS WILL GIVE UNEXPECTED RESULTS! (EXCEPT in the case of
+                      an 8 digit input, where a zero will be inserted between bits 7 & 8 and Atropos will be skipped.
                       Steps: 
                       \tnifti,    - take civm raw format images and turn them into nifti.
                       \tbias,     - bias correction enabled with -c option.
@@ -155,8 +155,9 @@ usage:
                       \tstrip,    - skull strip calculation for first channel(applied to all)
                       \treg_atlas,- rigid register to atlas
                       \tlabel,    - diffeomorphic register atlas label to image in atlas space.
+                      \tatropos.  - run 3-label Atropos segmentation and refine labels via cross-correlation 
                       \tstat_calc,- calculate statistics of labels 
-                      \tatropos.  - run 3-label Atropos segmentation and refine labels via cross-correlation ##BJ - UPDATE
+                      
                       Skipping is only for gross testing of commands created and not guaranteed to produce results.
      -t             : test mode, cuts all iterations for ants to 1x0x0x0, really fun with bit mask for rapid code testing. 
                       eg, this option is NOT FOR REGULAR USERS. 
@@ -209,8 +210,9 @@ dual contrast, with existing data using non standard contrasts.
 "; 
   exit ( $BADEXIT );
 }
-
+##------------------
 sub allowed_channels {
+##------------------
     my ($Hf,$key) = @_;
     my $pipeline_parameter_hf_name = 'seg_pipe_parameters.headfile'; # Default location of pipeline parameter file.
     my $pipeline_parameter_hf_path = $Hf->get_value('calling_program_path');
@@ -225,11 +227,13 @@ sub allowed_channels {
      }
 }
 
-
+##-----------------
 sub command_line_mc {
+##-----------------
   my ($Hf)=@_;
   my @allowed_non_dti;
-
+  my %arg_hash ;
+  my $projlist='';
   # If defined, 'seg_pipe_parameters.headfile' will set the various sets of allowed channels.
   if (defined $Hf) {
       if (($Hf->get_value('calling_program_name')) eq 'main_seg_pipe_mc.pl') {
@@ -246,8 +250,14 @@ sub command_line_mc {
 	  }
       }
   } 
+  @allowed_non_dti = split(',',$allowed_non_dti_channels);
 
+  $arg_hash{allowed_channels}=$allowed_channels;
+  $arg_hash{allowed_atropos_channels}=$allowed_atropos_channels;
+  $arg_hash{allowed_dti_channels}=$allowed_dti_channels;
+  $arg_hash{allowed_non_dti_channels}=$allowed_non_dti_channels;
 
+  ##
   if ($#ARGV<=0) { usage_message_mc("");}
   print "unprocessed args: @ARGV\n" if ($debug_val >=35);
   my %options = ();
@@ -269,8 +279,6 @@ sub command_line_mc {
   foreach my $a (@ARGV) {  # save the cmd line for annotation
     my $cmd_line = $cmd_line . " " . $a;
   }
-  my %arg_hash ;
-  my $projlist='';
 
   my $projectdest = pop(@ARGV);
   my $projectsource = pop(@ARGV);
@@ -303,14 +311,7 @@ sub command_line_mc {
   $arg_hash{projlist}=$projlist;
   $arg_hash{runnolist}=$runnolist; 
 
-  if (($Hf->get_value('calling_program_name')) eq 'main_seg_pipe_mc.pl') {
-    my  $allowed_dti_channels = allowed_channels($Hf,'allowed_dti_channels');
-    my  $allowed_non_dti_channels = allowed_channels($Hf,'allowed_non_dti_channels');
-        
-  } else {
-
-  }
-  @allowed_non_dti = split(',',$allowed_non_dti_channels);
+ 
 
   #  -- handle cmd line options...
   ## single letter opts
@@ -410,6 +411,8 @@ sub command_line_mc {
   if (defined $options{q}) {  # -q 
       $channel_order = $options{q};
       my @channel_order = split(',',$channel_order);
+      my $num_of_channels = ($#channel_order+1);
+      # Check to see if the channels specified are allowed channels for this pipeline.
       foreach my $ch (@channel_order) {
 	  if (",$allowed_channels," !~ m/^.*(,)($ch)(,).*$/) {
 	      $ch_err_msg = $ch_err_msg.$ch.' ';
@@ -420,6 +423,7 @@ sub command_line_mc {
 	  usage_message_mc("Error with command line option -q.  Invalid channel(s) specified: $ch_err_msg"); 
       }
 
+      # Check to see if only one runno in the command line is acceptable (i.e., all channels are from the same DTI runno).
       my $only_dti = 1; # It will be assumed that all the runs are dti-based until found otherwise.
       if ( $number_of_runnos == 1 ) {
 	  my $called_non_dti='';
@@ -438,23 +442,25 @@ sub command_line_mc {
 	      $arg_hash{runnolist} = $new_runnolist;
 	      print STDOUT "  Number of runnos less than number of channels in queue. All channels are dti, and will use the first runno specified. \n New runno_list = $arg_hash{runnolist} . \n";
 	  } else {
-   	      usage_message_mc("  Not enough runnos specified. If using only DTI channels with the same runno, then it is 
-  allowable to enter in that runno number exactly one time.  Otherise, the number of runnos entered must match number of channels in -q.  /n  Non-dti channels in -q: $called_non_dti. \n  ");
+   	      usage_message_mc("  Not enough runnos specified. If using only DTI channels with the same runno, then it is allowable to 
+  enter in that runno number exactly one time.  Otherwise, the number of runnos entered must match number of channels in -q.  \n  Non-dti channel(s) in -q: $called_non_dti. \n  ");
 	  }
       }
- 
-      if (defined $options{f}) {                          # BJ -- Need to add Atropos channel to channel queue if not already there, 
+      
+      #  Add Atropos channel to channel queue if not already (if Atropos is called).
+      if (defined $options{f}) {                          # BJ --e, 
 	  if (",$channel_order," !~ m/^.*((,)($atropos_channel)(,)).*$/) { 
 	     $channel_order=$channel_order.",",$atropos_channel;
 	     print STDOUT "  Atropos channel $atropos_channel added to end of channel queue.";
-	  }
-      #} 
+	  } 
 	  $cmd_line = "-q $channel_order " . $cmd_line;
       } else { 
 	  print STDOUT "  Using default channel order $channel_order\n" if ($debug_val>=10);
       }
   }
   $arg_hash{channel_order}=$channel_order;
+
+
 
  my $registration_channels=2;
   if (defined $options{m}) {  # m
@@ -464,6 +470,7 @@ sub command_line_mc {
   } else {
      print STDOUT "  Registration channels not specified, using up to 2.\n";
   }
+
   $arg_hash{registration_channels}=$registration_channels;
 
  ##opts with arguments
@@ -511,12 +518,15 @@ sub command_line_mc {
      $bit_mask = $options{b};
      if (! defined $options{f}) {                 # It can't be assumed that the users who don't need Atropos will be used to accounting for it in their bit mask.
 	 if ( length($bit_mask)<9) {              # If bit mask length is 8 or shorter, it is assumed that user is NOT designating a bit for Atropos...
-	     #my $stat_bit = pop($bit_mask);       # ...so the bit for statistics is popped off the end...
-	     #$bit_mask=$bit_mask."0".$stat_bit ;  # ...and bit 8 is set to zero to ignore all Atropos-related aspects of the pipeline, and stat_bit is added at the end.
-	     $bit_mask = $bit_mask."0";  # Currently Atropos is at the end of seg_pipe...will switch to two lines above once we move it to Step 8 and stats to Step 9.
+	     my @bit_mask = split('',$bit_mask);
+	     my $stat_bit = pop(@bit_mask);       # ...so the bit for statistics is popped off the end...
+	     $bit_mask = join('',@bit_mask);
+	     $bit_mask=$bit_mask."0".$stat_bit ;  # ...and bit 8 is set to zero to ignore all Atropos-related aspects of the pipeline, and stat_bit is added at the end.
+	     # $bit_mask = $bit_mask."0";         # Previously Atropos was at the end of seg_pipe...switched to two lines above as part of moving it to Step 8 and stats to Step 9.
+	     print STDOUT "  $bit_mask";
 	 }
      }
-     while( length("$bit_mask")<8){    # Until the bit mask has a length of 9...
+     while( length("$bit_mask")<9){    # Until the bit mask has a length of 9...
 	 $bit_mask="0".$bit_mask;      # ...zeros are prepended to it.
      }
      $cmd_line = "-b $bit_mask " . $cmd_line;

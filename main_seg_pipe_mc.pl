@@ -19,6 +19,7 @@
 #package seg_pipe_mc;
 
 use strict;
+use warnings;
 use List::Util qw(min);
 #require Exporter; 
 my $GOODEXIT = 0;
@@ -69,7 +70,7 @@ $Temp_Hf->set_value('calling_program',$pipeline_path.'/'.$pipeline_name);
 # SCRIPT AND WORLD GLOBALS
 ###
 my $ANTSAFFINEMETRIC ="mattes"; # "MI"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by changing the name of this in the headfile, and looking up those different variable names in the pipe.
-my $ANTSDIFFSyNMETRIC = "CC"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by chaning the naem of this in the headfile, and looking up those different variable names in the pipe.
+my $ANTSDIFFSyNMETRIC = "CC"; # could be any of the ants supported metrics, this is stored in our HfResult to be looked up by other functions,this should  be  a good way to go about things, as we can change in the future to use different metrics for different steps by changing the name of this in the headfile, and looking up those different variable names in the pipe.
 #$nchannels = 2; # number of channels to include in metrics, be nice to use all channels, but thats for the future, will have to edit lines containing this to be $#channel_list instead, to use all possible channels. perhaps we should do some kindof either or, another option flag telling the number of specified channels to use for the registration.
 # this has been set up as the -m option, will remain undocumented for now. 
 my  $NIFTI_MFUNCTION = 'civm_to_nii';  
@@ -173,7 +174,9 @@ $HfResult->set_value('ANTS-diff-SyN-metric',$ANTSDIFFSyNMETRIC);
 # runnumbers is the list of runnumber specefied
 # channel list is the "queue" of channel identifiers specified with -q
 # nchannels is an override to the number of channels to register (-m)
+
 my @tmparray=();
+my @tmparray_rbm=(); # We need a temporary array to preserve/pass along the reg_bit_mask info.
 # possible error conditions, 
 # size of runno_list < size of channel_list (eg you have specified more channels in -q than the list of runnumbers.)
 if ( $#runno_list<$#channel_list){
@@ -185,7 +188,7 @@ if ( $#runno_list<$#channel_list){
 }
 #size of runno_list < nchannels
 if ($#runno_list<$nchannels-1 ) { # this maybe should be<= not <
-    print("WARNING: More channels desired for regiistration than provided, guessing correct number\n"); # if ($debug_val >=35);
+    print("WARNING: More channels desired for registration than provided, guessing correct number\n"); # if ($debug_val >=35);
     $nchannels=min($#channel_list,$#runno_list)+1; 
     
     for (my $run=0;$run<=$#runno_list;$run++) {
@@ -193,11 +196,13 @@ if ($#runno_list<$nchannels-1 ) { # this maybe should be<= not <
     }
     @channel_list=@tmparray;
 } 
-if ($#channel_list<$nchannels-1) { # $# is max_index of 0 indexed array, so we in fact need to look for 1 less than the real number of channels
-        log_info("Only found $#channel_list channels. MUST SPECIFY TWO OR THREE CHANNELS.(The third is mostly along for the ride.) Less than 2 channels not currently tested, all registrations based on two channels, ");
 
-	print ("WARNING: changing number of channels to ($#runno_list+1)\n");
-	$nchannels=$#channel_list+1;
+my $num_of_listed_channels = ($#channel_list+1);
+if ($num_of_listed_channels < $nchannels) { # $# is max_index of 0 indexed array, so we in fact need to look fo addr 1 to get the real number of channels
+        log_info("Only found $num_of_listed_channels channels. MUST SPECIFY TWO OR THREE CHANNELS.(The third is mostly along for the ride.) Less than 2 channels not currently tested, all registrations based on two channels, ");
+
+	print ("WARNING: changing number of channels to ($num_of_listed_channels)\n");
+	$nchannels=$num_of_listed_channels;
 } 
 if ($debug_val>=35)
 {print("Registering using metrics for the first $nchannels channels.\n") ; sleep(3);}

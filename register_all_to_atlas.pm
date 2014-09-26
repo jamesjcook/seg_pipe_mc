@@ -40,9 +40,7 @@ sub register_all_to_atlas {
   foreach my $ch_id (@channel_array) {
       apply_atlas_transform("${ch_id}-strip-path",$atlas_xform_path, $Hf);
   }
-  if ($ggo) {
-    #unlink($atlas_xform_path);  # delete transform, but could keep to combine transforms
-  }
+
   # sets 'T2W_reg2_whs_path', 'T1_reg2_whs_path', 'T2star_reg2_whs_path';
 }
 
