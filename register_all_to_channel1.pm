@@ -21,6 +21,8 @@ my $ggo = 1;
 my $debug_val = 5;
 use strict;
 use warnings;
+use File::Copy;
+
 #use label_brain_pipe;
 #use vars qw($test_mode);
 
@@ -88,7 +90,10 @@ sub register_rigid_to_channel_N {
   my $reg_ch_num = $registration_channel + 1;
   my $xform_path;
   my $dot_less_deform_path = remove_dot_suffix($to_deform_path);
-  
+  my $result_suffix = "reg2_${channel_N}";
+  my $result_suffix_id = "reg2-${channel_N}";
+  my $result_path = "${dot_less_deform_path}_${result_suffix}.nii"; # ants wants .nii on result_path
+ 
   if (! $registration_channel) {
       print("register_rigid_to_channel1:\n\tengine_ants_path:$ants_app_dir\n\tmoving: $to_deform_path_id\n\t mpath: $to_deform_path\n\t fixed: $channel_N\n\t fpath:$warp_domain_path\n") if ($debug_val >=25);
   } else {
@@ -112,6 +117,8 @@ sub register_rigid_to_channel_N {
 	  apply_transform_path($to_deform_path_id, $xform_path, $Hf);
 	  print STDOUT "  Using rigid registration $xform_path for current channel $current_channel (both from runno $current_runno). \n   No new rigid transformation created.";
       } else {
+
+	  copy($to_deform_path,$result_path) or die "Copy failed: $!";
 	  print STDOUT "  No rigid transform needed for channel $current_channel (runno: $current_runno). \n";
       }
   }
@@ -119,9 +126,7 @@ sub register_rigid_to_channel_N {
 
  # apply_transform_path($to_deform_path_id, $xform_path, $Hf);
  
-  my $result_suffix = "reg2_${channel_N}";
-  my $result_suffix_id = "reg2-${channel_N}";
-  my $result_path = "${dot_less_deform_path}_${result_suffix}.nii"; # ants wants .nii on result_path
+ 
 
   # -- put result registered image's path in headfile
   #    first make registered result id: remove _nii_path suffix, leave prefix (eg T2star, T2W)
