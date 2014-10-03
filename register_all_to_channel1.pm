@@ -118,7 +118,7 @@ sub register_rigid_to_channel_N {
 	  print STDOUT "  Using rigid registration $xform_path for current channel $current_channel (both from runno $current_runno). \n   No new rigid transformation created.";
       } else {
 
-	  copy($to_deform_path,$result_path) or die "Copy failed: $!";
+	  copy("$to_deform_path","$result_path") or die "Copy failed: $!";
 	  print STDOUT "  No rigid transform needed for channel $current_channel (runno: $current_runno). \n";
       }
   }
