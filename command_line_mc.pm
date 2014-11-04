@@ -2,6 +2,8 @@
 # reads command line options for seg_pipe_mc, 
 # also contains usage_message for its pipeline
 #
+#
+# 2014/11/03 BJ, added command line options --metric_options and syn_options.
 # 14/08/16 rja20. Integrate Atropos module into pipeline. Replaced all active "STDERR" with "STDOUT".
 #
 #
@@ -48,33 +50,8 @@ sub usage_message_mc {
 # ------------------
 # $PIPELINE_VERSION, $PIPELINE_NAME, $PIPELINE_DESC
   my ($msg) = @_;
- # my $allowed_channels;
- # my @allowed_atropos_channels_array;
- # my @allowed_atropos_s_or_p=('','');
- # if (defined $Hf) {
- #     if (($Hf->get_value('calling_program_name')) eq 'main_seg_pipe_mc.pl') {
- #          $allowed_channels = allowed_channels($Hf,'allowed_channels');
- #	  $allowed_atropos_channels = allowed_channels($Hf,'allowed_atropos_channels');
-#    my  $allowed_dti_channels = allowed_channels($Hf,'allowed_dti_channels');
-#    my  $allowed_non_dti_channels = allowed_channels($Hf,'allowed_non_dti_channels');
- #	  if ($allowed_channels) {
- #            @allowed_atropos_channels_array = split(',',$allowed_atropos_channels);
- #	      if ($#allowed_atropos_channels_array < 0) {
- #		  @allowed_atropos_s_or_p = ('channels','are');
- #	      } else {
- #		  @allowed_atropos_s_or_p = ('channel','is');
- #	      }
- #	  } else {
- #	      $allowed_channels = 'T1,T2W,T2star,adc,dwi,e1,fa';
- #	      $allowed_atropos_channels = 'fa';
- #	      @allowed_atropos_s_or_p = ('channel','is');       
- #	  }
- #     } 
- # } else {
- #      $allowed_channels = 'T1,T2W,T2star,adc,dwi,e1,fa';
- #      $allowed_atropos_channels = 'fa';
- #      @allowed_atropos_s_or_p = ('channel','is'); 
- # }
+
+
 
   print STDERR "$msg\n";
   print STDERR "$PIPELINE_NAME
@@ -162,7 +139,43 @@ usage:
      -t             : test mode, cuts all iterations for ants to 1x0x0x0, really fun with bit mask for rapid code testing. 
                       eg, this option is NOT FOR REGULAR USERS. 
      -d   direction : Optional argument for specifying the direction of registration, default uses inverse
-                       use f or i : f forward transforms, i inverse transforms applied to atlas labels (default)
+                      use f or i : f forward transforms, i inverse transforms applied to atlas labels (default)
+     -y  syn_options: To be used sparingly, -y is a backdoor for setting SyN parameters. 1-3 inputs can be specified.  For example:
+                      -y option1  OR  -y option1,option2  OR -y option1,option2,option3.  If less than 3 options specified, then the input values
+                      will be used for the first options and any remaining options will take on default values (currently option2 = 3, option3 = 0.5).
+     -w metric_options: To be used sparingly, -w is a backdoor for changing the options associated with the metric of choice.  All inputs
+                      need to be entered as a comma-delimited string with no spaces. For example: -w option1,option2,option3,option4.
+                      Note that the metric itself (\"CC\",\"MI\",etc.) is NOT specified here.  The metric options for a given channel are:
+                      weighting (referred to here as \"w\"), radius (\"r\"), <optional sampling strategy> (\"s\"), and <optional sampling percentage> (\"p\").
+                                            
+                      How the inputs are implemented will differ depending on how many options are specified. Acceptable number of inputs are 1,2,3,4,6, or 8. 
+                      Review the following scenarios to determine which best matches the given situation.
+
+                      1 Input:  -w r. 
+                        The input value will be used as a custom radius for all channels.
+
+                      2 Inputs: -w w1,w2.
+                        The first input will be used as the weighting for channel 1 and the second will be used as the weighting for channel 2 (default: 0.5,0.5).
+
+                      3 Inputs, Case 1: -w r,s,p.
+                        If the the second of three inputs is text, the inputs will be used as the radius, sampling strategy, and sampling for all channels.
+                                Case 2: -w w1,w2,w3.
+                        If all three inputs are numeric, then the inputs will be used as the relative weighting for 3 registration channels. \"-m 3\" must be 
+                        used for this to be meaningful.  If using only 2 reg channels, the third input will be ignored.  In the case of more than 3 reg channels,
+                        Channels 4 and up will use default weighting values.
+
+                      4 Inputs: -w w1,w2,r1,r2.
+                        The input values will be used as channel 1 weighting, channel 2 weighting, channel 1 radius, and channel 2 radius, respectively.
+
+                      6 Inputs: -w r1,s1,p1,r2,s2,p2.
+                        The first 3 inputs will specify radius, sampling strategy, and sampling percentage for channel 1.  The last 3 will do the same for channel 2. 
+                        If more than 2 reg channels, channels 3 and up will use default values.
+
+                      8 Inputs: -w w1,r1,s1,p1,w2,r2,s2,p2.
+                        The same as 6 inputs, except that the weighting for each channel is specified as well. If more than 2 reg channels, channels 3 and up will use
+                        default values (please beware that default for w3 is currently 0.7!).
+
+
   Extended options: 
    -- designates extened name=value options separated by comas.
    --[OPTIONNAME=OPTIONVALUE,OPTIONNAME2=OPTION2VALUE]
@@ -261,7 +274,7 @@ sub command_line_mc {
   if ($#ARGV<=0) { usage_message_mc("");}
   print "unprocessed args: @ARGV\n" if ($debug_val >=35);
   my %options = ();
-  if (! getopts('a:b:cd:ef:i:kl:m:n:opq:r:s:tu:xz-:', \%options)) {
+  if (! getopts('a:b:cd:ef:i:kl:m:n:opq:r:s:tu:xw:y:z-:', \%options)) {
     print "Problem with command line options.\n";
     usage_message_mc("problem with getopts");
   } 
@@ -568,7 +581,39 @@ sub command_line_mc {
   }
   $arg_hash{sliceselect}=$sliceselect;
 
+  my $metric_options;
+  if (defined $options{w}) {  # -w
+      $metric_options = $options{w};
+      my @metric_inputs = split(',',$metric_options);
+      if ($metric_inputs[0] =~ /^[a-zA-Z\-]/) {
+	  error_out("command_line_mc: No inputs have been specified for -w.  Acceptable number of inputs are 1-4, 6, or 8. \n");
+      }
 
+      my $metric_inputs = @metric_inputs;	      
+      if (($metric_inputs == 5)|($metric_inputs == 7)| ($metric_inputs>=9)) {
+    	  error_out("command_line_mc: Invalid number of -w inputs (${metric_inputs} have been specified).  Acceptable number of inputs are 1-4, 6, or 8. \n");
+      }
+      $cmd_line = " -w $metric_options " . $cmd_line; 
+     print STDOUT "  Overriding default metric options, using -w ${metric_options}\n" if ($debug_val>=10);
+  }
+  $arg_hash{metric_options}=$metric_options;
+  
+  my $syn_options;
+  if (defined $options{y}){  # -y
+      $syn_options = $options{y};
+      my @syn_inputs = split(',',$syn_options);
+      my $syn_inputs = @syn_inputs;
+
+      if ($syn_inputs > 3) {
+	  error_out("   More than three SyN inputs have been specified. \n ");
+      } elsif (($syn_inputs[0] =~ /[a-zA-Z\-]/) or  ($syn_inputs[0] eq '')) {
+	  error_out("   No SyN inputs specified.  Need to specify at least the gradient step size. \n ");
+      }
+
+      $cmd_line = " -y $syn_options " . $cmd_line; 
+      print STDOUT "  Overriding default SyN options, using -y ${syn_options}\n" if ($debug_val>=10);
+  }
+  $arg_hash{syn_options}=$syn_options;
 
 ## BJ - Added code for custom atropos options ["u" is for "user-defined", I suppose].  ##Needs to be revisited!!!
   my $atropos_options;
@@ -606,9 +651,9 @@ sub command_line_mc {
 	  } elsif ($options{'-'} =~ /^threshold=.*/) {  # --threshold
 	      ($options{'-'},$arg_hash{threshold_code})=split('=',$options{'-'});
 	      $cmd_line = " --threshold=$arg_hash{threshold_code} " . $cmd_line;
-	      print STDOUT "  using thrshold_code: --threshold=$arg_hash{threshold_code}\n" if ($debug_val>=10);
+	      print STDOUT "  using threshold_code: --threshold=$arg_hash{threshold_code}\n" if ($debug_val>=10);
 	  } else { 
-	      error_out("Un recognized extended option -".$options{'-'}."\n");
+	      error_out("Unrecognized extended option -".$options{'-'}."\n");
 	  }
       }
 

@@ -2,6 +2,8 @@
 # create_labels.pm 
  
 # based on label_brain_0.sh by abb
+#
+# 2014/11/03 BJ, added command line options --metric_options and syn_options.
 # 2012/03/28 james cook, modified to chang whs to atlas, since we can use any 
 #            atlas, we shouldnt be calling it whs now should we....
 # 2012/03/27 james cook, began modifiication to work for arbitrary mc pipe
@@ -34,7 +36,7 @@ my $gwhs_T1_path;
 
 my $DEBUG_GO = 1;
 my $debug_val = 5;
-my $SYNSETTING=0.5; #0.5; #0.75; #%was 0.5; was 3
+my $SYNSETTING=0.5; #0.5; #0.75; #%was 0.5; was 3 # This is the DEFAULT Syn Setting. Can be overridden by command line --syn_setting
 #my $METRIC = "MI"; # could be any of the ants supported metrics, defined in main as a global, so bad to do that. should really chage that....
 
 
@@ -49,8 +51,10 @@ sub create_labels {
     log_info ("$PM name: $NAME; go=$go");
     log_info ("$PM desc: $DESC");
     log_info ("$PM version: $VERSION");
-
+   
+    
     my $affine_xform  = create_multi_channel_affine_transform ($Hf);
+
 
     my ($ants_transform_prefix) = create_multi_channel_diff_syn_transform ($affine_xform, $SYNSETTING , $Hf); 
     #syn_setting defined as 0.5, we could save this to hf perhaps, or more fun, specify it elsewhere and store in headfile.
@@ -76,7 +80,7 @@ sub create_multi_channel_affine_transform {
 #   i think the metrics should probably be in definition 
 # files rather than in the script here. 
 # i should work on that. 
-# this would change the funtion flow from if metric a, hardcode value b to load metrics, if metric a, value read b .
+# this would change the function flow from if metric a, hardcode value b to load metrics, if metric a, value read b .
 
     my ($Hf) = @_;
     print("\n\n\t$PM stage 1/$PM_stages \"create_multi_channel_affine_transform\" \n") if ($debug_val >= 35) ;
@@ -170,6 +174,7 @@ $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -t rigid[0.1] -c [$affine_i
 	    error_out("$PM create_affine_transform: could not make transform: $cmd\n");
 	}
     } 
+    }
     
     my $transform_path = "$result_transform_path_base\Affine.txt"; # old ants version name
     $transform_path = "$result_transform_path_base" . "0GenericAffine.mat"; # new ants version 
@@ -190,6 +195,20 @@ $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -t rigid[0.1] -c [$affine_i
 sub create_multi_channel_diff_syn_transform {
 # ------------------
     my ($affine_xform, $syn_setting, $Hf) = @_;
+    my $syn_parameters = $Hf->get_value("syn_options");
+    
+    if ( $syn_parameters eq 'UNDEFINED_VALUE' ) {
+	$syn_parameters = "$syn_setting,3,0.5"; #Default syn parameters with default gradient step size specified at top of this script.
+    } else {
+	my @syn_input = split(',',$syn_parameters);
+	if (! $#syn_input) { # Test to see if ref of the last element is zero (aka only one element in the array).
+	    $syn_parameters = "${syn_parameters},3,0.5"; # Add defaults for second values, "3" and 0.5", respectively.
+	} elsif ($#syn_input == 1) { # Two syn parameters are specified.
+	    $syn_parameters="${syn_parameters},0.5"; # Add default for third value, "0.5".
+	} else {
+	    $syn_parameters = $syn_parameters; # Otherwise we leave the syn_parameters string unchanged.
+	}
+    }
 
     print("\n\n\t$PM stage 2/$PM_stages \"create_multi_channel_diff_syn_transform\" \n\n\n") if ($debug_val >= 35) ;
 
@@ -197,12 +216,12 @@ sub create_multi_channel_diff_syn_transform {
     my $atlas_images_dir = $Hf->get_value('dir-atlas-images');
     my $ants_app_dir     = $Hf->get_value('engine-app-ants-dir');
     my $work_dir         = $Hf->get_value('dir-work');
-    my $metric           = $Hf->get_value('ANTS-diff-SyN-metric');
+    my $metric           = $Hf->get_value('ANTS-diff-SyN-metric');  ## BJ, look up here!
     my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
     my $channel1 = ${channel_array[0]};
     my $channel1_runno   = $Hf->get_value("${channel1}-runno");
     my $used_reg_channels='';
-    #nchannels is a global, should conert to hf->get_value('registration_channels');
+    #nchannels is a global, should convert to hf->get_value('registration_channels');
     # 
     for(my $chindex=0;$chindex<$nchannels;$chindex++) {
       #    foreach (@channel_array) {
@@ -250,8 +269,9 @@ sub create_multi_channel_diff_syn_transform {
     }
   
 
-for(my $chindex=0;$chindex<$nchannels;$chindex++) {
+    for(my $chindex=0;$chindex<$nchannels;$chindex++) {
 	my $ch_id=$channel_array[$chindex];
+	my $channel_option_string;
 	my $channel_option = $Hf->get_value("diff-SyN-${metric}-${ch_id}-weighting");
 	if ( $channel_option eq 'NO_KEY' ) { error_out ("could not find metric diff-SyN-${metric}-${ch_id}-weighting "); }
 	my $channel_path      = $Hf->get_value("${ch_id}-reg2-${atlas_id}-path");
@@ -259,32 +279,103 @@ for(my $chindex=0;$chindex<$nchannels;$chindex++) {
 	if ( ! -e $channel_path ) { # crap out on missing file
 	    error_out ("$PM create_multi_channel_affine_transform: $channel_path does not exist<${ch_id}-reg2-${atlas_id}-path>");
 	} else {
+	    my $metric_options = $Hf->get_value("metric_options");
+	    print "  \$metric_options = $metric_options. \n\n";
+	    if ($metric_options eq 'UNDEFINED_VALUE' ) {
+		$channel_option_string = $channel_option;
+	    } else {
+		my @channel_option_array = split(',',$channel_option);
+		my $default_radius = pop(@channel_option_array);
+		my $default_weighting = $channel_option_array[0];
+
+		my @metric_option_array = split(',',$metric_options);
+		my $metric_inputs = ($#metric_option_array+1);
+		if ($metric_inputs == 1) {
+		    $channel_option_string = "${default_weighting},${metric_options}";
+		    print STDOUT "  Command line -w is being implemented as a custom \"radius\", same for all channels (only 1 input). \n ";
+		} elsif ($metric_inputs == 2 ) {
+		    my $custom_ch_weight = $metric_option_array[$chindex];
+		    $channel_option_string = "${custom_ch_weight},${default_radius}";
+		    print STDOUT "  Command line -w is being implemented as custom weighting for channels 1 and 2 respectively (2 inputs). \n  ";
+		} elsif ($metric_inputs == 3 ) {
+		    if ($metric_option_array[1] =~ /[A-Za-z]/) { # Assume user meant to specify "...radius,sampling_strategy,sampling_percentage".
+			$channel_option_string = "${default_weighting},${metric_options}";
+			print STDOUT "  Command line -w is being implemented as \"radius, sampling_strategy, sampling_percentage\", same for all channels (3 inputs, with second input containing at least one letter). \n ";
+		    } else { # Otherwise, it is assumed that we are setting the relative weighting for 3 registration channels.
+			my $custom_ch_weight = $metric_option_array[$chindex];
+			$channel_option_string = "${custom_ch_weight},${default_radius}";
+print STDOUT "   Command line -w is being implemented as custom weighting for the registration channels 1,2, and 3, respectively. If using less than 3 registration channels, only first m values will be used.  If using more than 4 registration channels, channel 4, etc. will use their default values. (3 numerical inputs) \n "
+		    }
+		} elsif ($metric_inputs == 4 ) { # Assume user is specifying custom values for ch_1 weight, ch_2 weight, ch_1 radius, ch_2 radius.
+		    my $custom_ch_weight = $metric_option_array[$chindex];
+		    my $custom_radius = $metric_option_array[$chindex + 2];
+		    $channel_option_string = "${custom_ch_weight},${custom_radius}";
+		    print STDOUT "  Command line -w is being implemented as \"channel_1_weight,channel_2_weight,channel_1_radius,channel_2_radius\" (4 inputs). \n ";
+		} elsif ($metric_inputs == 6 ) { # Assume user is specify (radius,sampling_strategy,sampling_percentage) for channel 1 then channel 2.
+		    my $custom_params;		   
+		    if ($chindex == 0) {
+			$custom_params = $metric_option_array[0].','.$metric_option_array[1].','.$metric_option_array[2];
+		    } elsif ($chindex == 1) {
+			$custom_params = $metric_option_array[3].','.$metric_option_array[4].','.$metric_option_array[5];
+		    } else {
+			$channel_option_string = $default_weighting.','.$default_radius;
+		    }
+		    $channel_option_string = "${default_weighting},${custom_params}";
+		    print STDOUT "   Command line --metric_options is being implemented as \"ch_1_radius,ch_1_sampling_strategy,ch_1_sampling_percentage,ch_2_radius,ch_2_sampling_strategy,ch_2_sampling_percentage\" (6 inputs). \n ";
+		} elsif ($metric_inputs == 8) { # Assume user is specifying (weight, radius, sampling_strategy, sampling_percentage) for channels 1 then 2.
+		    my $custom_params;
+		    if ($chindex == 0) {
+			$custom_params = $metric_option_array[0].','.$metric_option_array[1].','.$metric_option_array[2].','.$metric_option_array[3];
+		    } elsif ($chindex == 1) {
+			$custom_params = $metric_option_array[4].','.$metric_option_array[5].','.$metric_option_array[6].','.$metric_option_array[7];
+		    } else {
+			$custom_params = $default_weighting.','.$default_radius;
+		    }
+		    $channel_option_string = $custom_params;
+ print STDOUT "   Command line -w is being implemented as \"ch_1_weighting,ch_1_radius,ch_1_sampling_strategy,ch_1_sampling_percentage,ch_2_weighting,ch_2_radius,ch_2_sampling_strategy,ch_2_sampling_percentage\" (8 inputs). \n ";
+		} else { # Otherwise stick with default.
+		    $channel_option_string = $default_weighting.','.$default_radius;
+		    print STDOUT "   Command line --metric_options is not being implemented, using default values (0 inputs). \n ";
+		}
+
+	    }
 	    if ($transform_direction eq 'i')
 	      {
-		
-		$metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option}]"; 
-
-                $ref_skull_mask   = "$canon_image_dir/${atlas_id}_mask.nii"; # a canonical reference mask
-		#$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x2 -t SyN[$syn_setting,1,0.5] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1"; 
-		#$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,1] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1"; 
-	        #$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
-                $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
-                $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x3x2vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
-                $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 4x2x1 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -l 1 -u 1 -z 1"; 
-                $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 2x1x0vox -f 4x2x1 -t SyN[$syn_setting,3,0.5] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -l 1 -u 1 -z 1"; 
-
+		$metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option_string}]";
 	      }
-           elsif ($transform_direction eq 'f')
-	     {
-	       $metrics = $metrics . " -m ${metric}[${channel_path},${atlas_image_path},${channel_option}]"; 
-               $ref_skull_mask   = $norm_mask_path;
-	       $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x2 -t SyN[$syn_setting,1,0.5] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -u 1"; 
-	       $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,1] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -u 1"; 
-               $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 4x2x1 -t SyN[$syn_setting,3,0] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -l 1 -u 1 -z 1"; 
-               $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 2x1x0vox -f 4x2x1 -t SyN[$syn_setting,3,0.5] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -l 1 -u 1 -z 1"; 
-	     }
+	    elsif ($transform_direction eq 'f') {
+		$metrics = $metrics . " -m ${metric}[${channel_path},${atlas_image_path},${channel_option_string}]";
+	    }
 	}
+    }        
+
+    if ($transform_direction eq 'i') {
+        $ref_skull_mask   = "$canon_image_dir/${atlas_id}_mask.nii"; # a canonical reference mask
+	#$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x2 -t SyN[$syn_setting,1,0.5] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1"; 
+      	#$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,1] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1"; 
+        #$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
+        #$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
+        #$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x3x2vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
+        #$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 4x2x1 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -l 1 -u 1 -z 1";
+		
+#       Most recent production code before adding the option to vary the syn parameters from the command line:
+#       $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 2x1x0vox -f 4x2x1 -t SyN[$syn_setting,3,0.5] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -l 1 -u 1 -z 1"; 
+
+        $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 2x1x0vox -f 4x2x1 -t SyN[$syn_parameters] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -l 1 -u 1 -z 1"; 
+
+    }  elsif ($transform_direction eq 'f') {
+        $ref_skull_mask   = $norm_mask_path;
+	#$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x2 -t SyN[$syn_setting,1,0.5] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -u 1"; 
+	#$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,1] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -u 1"; 
+        #$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 4x2x1 -t SyN[$syn_setting,3,0] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -l 1 -u 1 -z 1";
+
+#       Most recent production code before adding the option to vary the syn parameters from the command line.
+#       $my_options = "-c [ $diffsyn_iter,1e-8,20] -s 2x1x0vox -f 4x2x1 -t SyN[$syn_setting,3,0.5] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -l 1 -u 1 -z 1";
+             
+	$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 2x1x0vox -f 4x2x1 -t SyN[$syn_parameters] -x [ $norm_mask_path,$ref_skull_mask] -r $affine_xform -a 0 -l 1 -u 1 -z 1";
+
     }
+
 #long run
 #will need to flip the order of the masks in -x for forwd and inverse
 
@@ -294,7 +385,6 @@ for(my $chindex=0;$chindex<$nchannels;$chindex++) {
     #/////// define ants transform command including all options ///////
 
     my $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -o $result_transform_path_base $my_options";
-
 
     if ($DEBUG_GO) { 
 	if (! execute($ggo, "create affine diff syn transform for labels 8/2013\n\n\n", $cmd) ) {
