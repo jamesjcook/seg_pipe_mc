@@ -6,6 +6,7 @@
 # This should only set up and check environment, 
 # and then call another perl module to do real segmentation specific work.
 #
+# 2014/11/03 BJ, added command line option --metric_options and syn_options.
 # 2013/07/30 james, updated flip_y code to say flip-x which is what had really been going on all along, rather we rotated on the z dimension, changing both y and x..
 # 2012/04/03 james, updated lots of things, specifically changed hard coded references to whs to atlas, and made channel inputs arbitrary 
 # 2011/01/21 slg command line options to change default locations: dir_whs_labels_default, dir_whs_images_default
@@ -115,6 +116,8 @@ my $port_atlas_mask=$arghash{port_atlas_mask};     # -p
 my $roll_string     = $arghash{roll_string};       # -r rolling with array rx ry
 my $use_existing_mask=$arghash{use_existing_mask};     # -k
 my $cmd_line = $arghash{cmd_line};
+my $metric_options = $arghash{metric_options};     # --metric_options
+my $syn_options = $arghash{syn_options};           # --syn_options
 
 
 
@@ -309,6 +312,9 @@ $HfResult->set_value('port_atlas_mask'         , $port_atlas_mask);
 $HfResult->set_value('use_existing_mask'       , $use_existing_mask);
 $HfResult->set_value('threshold_code'          , $threshold_code);
 $HfResult->set_value('registration_channels'   , $nchannels);
+$HfResult->set_value('metric_options'          , $metric_options);
+$HfResult->set_value('syn_options'             , $syn_options);
+
 
 if ($atropos_channel) {
     $HfResult->set_value('atropos_channel',$atropos_channel);
