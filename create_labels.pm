@@ -174,7 +174,7 @@ $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -t rigid[0.1] -c [$affine_i
 	    error_out("$PM create_affine_transform: could not make transform: $cmd\n");
 	}
     } 
-    }
+    
     
     my $transform_path = "$result_transform_path_base\Affine.txt"; # old ants version name
     $transform_path = "$result_transform_path_base" . "0GenericAffine.mat"; # new ants version 
