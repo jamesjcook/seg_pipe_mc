@@ -38,6 +38,7 @@ if (! defined($RADISH_PERL_LIB)) {
 use lib split(':',$RADISH_PERL_LIB);
 require Headfile;
 require pipeline_utilities;
+require civm_simple_util;
 require retrieve_archived_data;
 # specific includes, these are pms specific to seg_pipe_mc and reside in its directory, 
 # comand+line_mc and seg_pipe, might make sense to build a "analysis_pipe" class out of, 
@@ -55,6 +56,7 @@ BEGIN {
 }
 # most of these variables are defined in seg_pipe.pm as they are static, nchannels is defined here
 use vars qw($PIPELINE_VERSION $PIPELINE_NAME $PIPELINE_DESC $HfResult $Temp_Hf $GOODEXIT $BADEXIT $nchannels);
+use civm_simple_util qw(file_exists);
 my $debug_val = 35;
 
 $Temp_Hf = new Headfile;
@@ -145,7 +147,7 @@ if ($atlas_labels_dir eq "DEFAULT") { # handle -l option
 
 }
 log_info("  Using canonical labels dir = $atlas_labels_dir"); 
-if (! -e $atlas_labels_dir) { error_out ("unable to find canonical labels directory $atlas_labels_dir");  } 
+if (! -d $atlas_labels_dir) { error_out ("unable to find canonical labels directory $atlas_labels_dir");  } 
 $HfResult->set_value('dir-atlas-labels', $atlas_labels_dir);
 
 
@@ -161,7 +163,7 @@ $HfResult->set_value('reg-target-atlas-id',$atlas_id);
 $HfResult->set_value('dir-atlas-images', $atlas_images_dir);
 $HfResult -> set_value('transform_direction',$transform_direction);
 
-if (! -e $atlas_images_dir) { error_out ("unable to find canonical images directory $atlas_images_dir");  } 
+if (! -d $atlas_images_dir) { error_out ("unable to find canonical images directory $atlas_images_dir");  } 
 log_info("        canonical images dir = $atlas_images_dir"); 
 
 $HfResult->set_value('ANTS-affine-metric',$ANTSAFFINEMETRIC);
@@ -280,11 +282,11 @@ my $labelfile ="$atlas_labels_dir/${atlas_id}_labels.nii";
 for ( my $ch_num=0; $ch_num<$nchannels; $ch_num++) {
     my $ch_id=$channel_list[$ch_num];
     my $imagefile ="$atlas_images_dir/${atlas_id}_${ch_id}.nii";
-    if (!-e $imagefile) {
+    if ( ! file_exists($imagefile."(.gz)?")) {
 	$err_buffer = $err_buffer . "\n\t$imagefile";
     }
 }
-if (!-e $labelfile) {
+if (! file_exists($labelfile."(.gz)?")) {
     $err_buffer = $err_buffer . "\n\t$labelfile";
 }
 # if there was an error locating the atlas image files or labels
@@ -319,8 +321,8 @@ print ("Inserting Channel runnos to headfile:\n");
 
 # --- get source images, genericified for arbitrary channels
 my $dest_dir = $HfResult->get_value('dir-input'); # for retrieved images
-if (! -e $dest_dir) { mkdir $dest_dir; }
-if (! -e $dest_dir) { error_out ("no dest dir! $dest_dir"); }
+if (! -d $dest_dir) { mkdir $dest_dir; }
+if (! -d $dest_dir) { error_out ("no dest dir! $dest_dir"); }
 
 my $i;
 for($i=0;$i<=$#runno_list;$i++) {

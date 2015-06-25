@@ -16,10 +16,18 @@ sub create_transform {
   my ($go, $xform_code, $A_path, $B_path, $result_transform_path_base, $ants_app_dir) = @_;
 
 
+  # check for a_path and b_path and add .gz 
+  if ( ! -f $A_path ) {
+      $A_path=$A_path.".gz";
+  }
+  if ( ! -f $B_path ) {
+      $B_path=$B_path.".gz";
+  }   
+
 # ./antsRegistration -d 3 -o /Volumes/cretespace/S64477_m0Labels-work/S64477_m0_DTI_dwi_strip_2_DTIdwi_transform_AffineM.txt -t Rigid[0.25] -c 100x100 -s 4x2vox -f 4x2 -u -m MI[/Volumes/pipe_home/whs_references/whs_canonical_images/dti_average/DTI_dwi.nii,/Volumes/cretespace/S64477_m0Labels-work/S64477_m0_DTI_dwi_strip.nii,1,32,random,0.3]  
 
 
-  my $affine_iter="3000x3000x0x0";
+  my $affine_iter="3000x3000x3000x3000";
   if (defined $test_mode) {
       if ($test_mode==1) {
 	  $affine_iter="1x0x0x0";
@@ -102,7 +110,10 @@ sub apply_affine_transform {
 # ------------------
   my ($go, $to_deform_path, $result_path, $do_inverse_bool, $transform_path, $warp_domain_path, $ants_app_dir, $interp) =@_; 
 
-
+  # check for files, and if not exist assume gzip
+  if ( ! -f $warp_domain_path ) {
+      $warp_domain_path=$warp_domain_path.".gz";
+  }
 #rigid reg to atlas calls apply_affine_transform like this:
 # apply_affine_transform($ggo, $to_deform_path, $result_path, $do_inverse_bool, $xform_path, $domain_path, $ants_app_dir);
 

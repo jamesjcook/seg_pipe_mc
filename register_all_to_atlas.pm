@@ -60,8 +60,8 @@ sub create_transform_to_atlas_channel_id {
   # whs filename is whs_T1.nii, and whs_T2star.nii etc.
 
   if ($ggo) {
-    if (!-e $to_deform_path) {error_out ("$PM create_transform_to_atlas_channel_id:${ch_id}: missing to deform nifti file $to_deform_path\n")}
-    if (!-e $domain_path)  {error_out ("$PM create_transform_to_atlas_channel_id:${ch_id}: missing domain nifti file $domain_path\n")}
+    if (! file_exists($to_deform_path."(.gz)?")) {error_out ("$PM create_transform_to_atlas_channel_id:${ch_id}: missing to deform nifti file $to_deform_path\n")}
+    if (! file_exists($domain_path."(.gz)?"))  {error_out ("$PM create_transform_to_atlas_channel_id:${ch_id}: missing domain nifti file $domain_path\n")}
   }
 
   # -- make base path
@@ -110,33 +110,31 @@ sub apply_atlas_transform
   my $result_suffix_id = "reg2-${atlas_id}";
 
   if ($ggo) {
-    if (!-e $to_deform_path) {error_out ("$PM apply_atlas_transform: missing fixed nifti file $to_deform_path, $to_deform_path_id\n")}
+    if (! file_exists($to_deform_path."(.gz)?")) {error_out ("$PM apply_atlas_transform: missing fixed nifti file $to_deform_path, $to_deform_path_id\n")}
     if (!-e $xform_path) {error_out ("$PM apply_atlas_transform: missing xform file $xform_path\n")}
   }
  
   my $domain_dir;
   my $domain_path;
 
-       if (0) { # domain seems to be image itself in rigid_to_can_N32083_30jul.sh...
-           # not the atlas data as set up here
+  if (0) { # domain seems to be image itself in rigid_to_can_N32083_30jul.sh...
+      # not the atlas data as set up here
       my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
-      my $channel1 = ${channel_array[0]};
-    $domain_dir   = $Hf->get_value ('dir-atlas-images');
-    $domain_path  = "$domain_dir/${atlas_id}_${channel1}.nii";
-
-
-    if (!-e $domain_path)  {error_out ("$PM apply_${atlas_id}_transform: missing domain nifti file $domain_path\n")}
-  } else {  
-    $domain_path = $to_deform_path; 
-  }
-
-#this is bad coding Alex- reconcile with the if above! 
-     my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
       my $channel1 = ${channel_array[0]};
       $domain_dir   = $Hf->get_value ('dir-atlas-images');
       $domain_path  = "$domain_dir/${atlas_id}_${channel1}.nii";
+      if (!-e $domain_path)  {error_out ("$PM apply_${atlas_id}_transform: missing domain nifti file $domain_path\n")}
+  } else {  
+      $domain_path = $to_deform_path; 
+  }
 
-print "reference_space for register all to altas: $domain_path\n";
+#this is bad coding Alex- reconcile with the if above! 
+  my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
+  my $channel1 = ${channel_array[0]};
+  $domain_dir   = $Hf->get_value ('dir-atlas-images');
+  $domain_path  = "$domain_dir/${atlas_id}_${channel1}.nii";
+  
+  print "reference_space for register all to altas: $domain_path\n";
 
   # --- set up result nii file path
   my $dot_less_deform_path = remove_dot_suffix($to_deform_path);
