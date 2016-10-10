@@ -413,13 +413,16 @@ sub command_line_mc {
   }
   $arg_hash{channel_order}=$channel_order;
 
- my $registration_channels=2;
+  my $registration_channels=2;
   if (defined $options{m}) {  # m
-     $registration_channels = $options{m};
-     $cmd_line =  "-m $registration_channels " . $cmd_line ;
-     print STDOUT "  Registration channels specified, will use up to ${registration_channels} channels. (-m)\n";
+      if ( $options{m} !~ /^[0-9]$/ ) {
+	  die "THIS MUST BE AN INTEGER NUMBER!!!!!!!";
+      }
+      $registration_channels = $options{m};
+      $cmd_line =  "-m $registration_channels " . $cmd_line ;
+      print STDOUT "  Registration channels specified, will use up to ${registration_channels} channels. (-m)\n";
   } else {
-     print STDOUT "  Registration channels not specified, using up to 2.\n";
+      print STDOUT "  Registration channels not specified, using up to 2.\n";
   }
   $arg_hash{registration_channels}=$registration_channels;
 
