@@ -14,8 +14,6 @@ use vars qw($test_mode);
 sub create_transform {
 # ------------------
   my ($go, $xform_code, $A_path, $B_path, $result_transform_path_base, $ants_app_dir) = @_;
-
-
   # check for a_path and b_path and add .gz 
   if ( ! -f $A_path ) {
       $A_path=$A_path.".gz";
@@ -23,11 +21,7 @@ sub create_transform {
   if ( ! -f $B_path ) {
       $B_path=$B_path.".gz";
   }   
-
-# ./antsRegistration -d 3 -o /Volumes/cretespace/S64477_m0Labels-work/S64477_m0_DTI_dwi_strip_2_DTIdwi_transform_AffineM.txt -t Rigid[0.25] -c 100x100 -s 4x2vox -f 4x2 -u -m MI[/Volumes/pipe_home/whs_references/whs_canonical_images/dti_average/DTI_dwi.nii,/Volumes/cretespace/S64477_m0Labels-work/S64477_m0_DTI_dwi_strip.nii,1,32,random,0.3]  
-
-
-  my $affine_iter="3000x3000x3000x3000";
+  my $affine_iter="3000x3000x0x0";
   if (defined $test_mode) {
       if ($test_mode==1) {
 	  $affine_iter="1x0x0x0";
@@ -36,43 +30,40 @@ sub create_transform {
   my $cmd;
   if ($xform_code eq 'rigid1') {
       # -------- rigid1 -------------------
-      #exe1="${ANTSPATH}ants 3 -m PR[T2s_file_nii,T1_file_nii,1,4] -i 0 --UseHistogramMatching --rigid-affine true --MI-option 16x8000 -r Gauss[3,0] -o 
-      #fileT2s_out_transform -number-of-affine-iterations 100x20x10x1 --affine-gradient-descent-option 0.1x0.5x1.e-4x1.e-4 -v"
-# --- from ants.pdf: 
-
-      my $opts1 = "-i 0 --use-Histogram-Matching --rigid-affine true --MI-option 32x8000 -r Gauss[3,0.5]";
-      #my $opts2 = "--number-of-affine-iterations $affine_iter --affine-gradient-descent-option 0.8x0.5x1.e-4x1.e-4 -v";
-     # my $opts2 = "--number-of-affine-iterations $affine_iter --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4 -v --ignore-void-origin "; 
-      my $opts2 = "--number-of-affine-iterations $affine_iter --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4 -v";  
-      #$cmd = "$ants_app_dir/ANTS 3 -m CC[$A_path,$B_path,1,4] $opts1 -o $result_transform_path_base $opts2"; #option - but time consuming
-      
-
-#$cmd = "$ants_app_dir/ANTS 3 -m MI[$A_path,$B_path,1,32] $opts1 -o $result_transform_path_base $opts2";
-$cmd = "$ants_app_dir/antsRegistration -d 3 -t Rigid[0.25] -c 3000x3000 -s 4x2vox -f 4x2 -u -m MI[$A_path,$B_path,1,32,random,0.3] -o $result_transform_path_base $opts2";
-
-#example from Brian
-#$reg -d $dim -r [ $f, $m ,1] \ -m mattes[ $f, $m , 1 , 32, regular, 0.2 ] \ -t translation[ 0.1 ] \ -c [$its,1.e-8,20] \ -s 4x2x1 \ -f 6x4x2 -l 1 \ -m mattes[ $f, $m , 1 , 32, regular, 0.2 ] \ -t rigid[ 0.1 ] \ -c [$its,1.e-8,20] \ -s 4x2x1 \ -f 6x4x2 -l 1 \ -m mattes[ $f, $m , 1 , 32, regular, 0.2 ] \ -t affine[ 0.1 ] \ -c [$its,1.e-8,20] \ -s 4x2x1 \ -f 6x4x2 -l 1 \ -m mattes[ $f, $m , 1 , 32 ] \ -t syn[ .25, 3, 0.5 ] \ -c [50x50x0,1.e-8,20] \ -s 2x1x0 \ -f 4x2x1 -l 1 -u 1 -z 1 \ -o [${nm},${nm}_diff.nii.gz,${nm}_inv.nii.gz]
-
-#${AP}antsApplyTransforms -d $dim -i $m -r $f -n linear -t ${nm}1Warp.nii.gz -t ${nm}0GenericAffine.mat -o ${nm}_warped.nii.gz
-      
- 
-$cmd = "$ants_app_dir/antsRegistration -d 3 -r [$A_path,$B_path,1] -m Mattes[$A_path,$B_path,1,32,random,0.3] -t translation[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 -m Mattes[$A_path,$B_path,1,32,random,0.3] -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 -u 1 -z 1 -o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4";
-$cmd = "$ants_app_dir/antsRegistration -d 3 -r [$A_path,$B_path,1] -m Mattes[$A_path,$B_path,1,32,random,0.3] -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -u 1 -z 1 -o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4";
+      $cmd = "$ants_app_dir/antsRegistration -d 3 -r [$A_path,$B_path,1] -m Mattes[$A_path,$B_path,1,32,random,0.3] -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -u 1 -z 1 -o $result_transform_path_base";
      
   } elsif ( $xform_code eq 'nonrigid_MSQ' ) {
       # -------- portatlasmask -------------------
-      #  --- is this an inverse transform?  -i 0 ?
-      my $opts1 = "-i 0 ";
-      my $opts2 = "--number-of-affine-iterations $affine_iter --affine-metric-type MSQ";  
-#      --affine-gradient-descent-option 0.8x0.5x1.e-4x1.e-4 -v
-#      --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4";
-    #  $cmd = "$ants_app_dir/ANTS 3 -m MSQ[ $A_path,$B_path,1,2] $opts1 -o $result_transform_path_base $opts2";
+###
+# example from Brian
+###
+#$reg -d $dim -r [ $f, $m ,1] \
+#     -m mattes[ $f, $m , 1 , 32, regular, 0.2 ] \
+#        -t translation[ 0.1 ] \
+#        -c [$its,1.e-8,20] \
+#        -s 4x2x1 \
+#        -f 6x4x2 -l 1 \
+#     -m mattes[ $f, $m , 1 , 32, regular, 0.2 ] \
+#        -t rigid[ 0.1 ] \
+#        -c [$its,1.e-8,20] \
+#        -s 4x2x1 \
+#        -f 6x4x2 -l 1 \
+#     -m mattes[ $f, $m , 1 , 32, regular, 0.2 ] \
+#        -t affine[ 0.1 ] \
+#        -c [$its,1.e-8,20] \
+#        -s 4x2x1 \
+#        -f 6x4x2 -l 1 \
+#     -m mattes[ $f, $m , 1 , 32 ] \
+#        -t syn[ .25, 3, 0.5 ] \
+#        -c [50x50x0,1.e-8,20] \
+#        -s 2x1x0 \
+#        -f 4x2x1 -l 1 -u 1 -z 1 \
+#     -o [${nm},${nm}_diff.nii.gz,${nm}_inv.nii.gz]
+      $cmd = "$ants_app_dir/antsRegistration -d 3 -r [$A_path,$B_path,1] ".
+	  " -m MeanSquares[$A_path,$B_path,1,32,random,0.3] -t translation[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 ".
+	  " -m MeanSquares[$A_path,$B_path,1,32,random,0.3] -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 ".
+	  " -m MeanSquares[$A_path,$B_path,1,32,random,0.3] -t affine[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1-u 1 -z 1 -o $result_transform_path_base";
 
-      #$cmd = "$ants_app_dir/antsRegistration -d 3 -t Affine[0.25] -c 3000x3000 -s 4x2vox -f 4x2 -u -m MeanSquares[$A_path,$B_path,1,4,random,0.3] -o $result_transform_path_base $opts2";
-     $cmd = "$ants_app_dir/antsRegistration -d 3 -r [$A_path,$B_path,1] ".
-	 " -m MeanSquares[$A_path,$B_path,1,32,random,0.3] -t translation[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 ".
-	 " -m MeanSquares[$A_path,$B_path,1,32,random,0.3] -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 ".
-	 " -m MeanSquares[$A_path,$B_path,1,32,random,0.3] -t affine[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1-u 1 -z 1 -o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4";
   }
   else {
       error_out("$PM create_transform: don't understand xform_code: $xform_code\n");
