@@ -283,11 +283,11 @@ for ( my $ch_num=0; $ch_num<$nchannels; $ch_num++) {
     my $ch_id=$channel_list[$ch_num];
     my $imagefile ="$atlas_images_dir/${atlas_id}_${ch_id}.nii";
     if ( ! file_exists($imagefile."(.gz)?")) {
-	$err_buffer = $err_buffer . "\n\t$imagefile";
+	$err_buffer = $err_buffer . "\n\t$imagefile AND \n\t$imagefile.gz";
     }
 }
 if (! file_exists($labelfile."(.gz)?")) {
-    $err_buffer = $err_buffer . "\n\t$labelfile";
+    $err_buffer = $err_buffer . "\n\t$labelfile AND \n\t$labelfile.gz";
 }
 # if there was an error locating the atlas image files or labels
 error_out ("$PIPELINE_NAME Missing atlas files:$err_buffer") unless ($err_buffer eq '');
