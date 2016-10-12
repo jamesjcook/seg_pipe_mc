@@ -42,6 +42,9 @@ sub skull_strip_all {
   my $norm_mask_path;
   my $nii_less_path = remove_dot_suffix($Hf->get_value("${channel1}-nii-path"));
   $mask_path_tmp = "${nii_less_path}_manual_mask\.nii";
+  if ( ! -e $mask_path_tmp ) {
+      $mask_path_tmp = "${nii_less_path}_manual_mask\.nii.gz";
+  }
   if ( $Hf->get_value('use_existing_mask')) {
 
     if ( ! -e $mask_path_tmp ) { 
@@ -101,7 +104,7 @@ sub normalize_skull_mask {
 #      $ants_app_dir  = $Hf->get_value('engine_app_ants_dir');
 #  }
   my $work_dir      = $Hf->get_value('dir-work');
-  my $out_image_path    = "$work_dir/$out_image_suffix\.nii";
+  my $out_image_path    = "$work_dir/$out_image_suffix\.nii.gz";
 #  if ($ants_app_dir eq '' || $ants_app_dir eq 'NO_KEY' || $ants_app_dir eq 'UNDEFINED') {
 #      error_out( 'bad ants_dir in normalize_skull_mask'); }
 
@@ -132,7 +135,7 @@ sub apply_skull_mask {
   }
 
   my $nii_less_path = remove_dot_suffix($in_image_path);
-  my $out_nii_path  = "$nii_less_path\_$result_suffix\.nii";
+  my $out_nii_path  = "$nii_less_path\_$result_suffix\.nii.gz";
   if ($ggo) {
     im_apply_mask($in_image_path, $mask_path, $out_nii_path, $ants_app_dir);
   }
@@ -150,7 +153,7 @@ sub make_skull_mask {
   if (!-e $template_path)  {error_out("$PM make_skull_mask: missing mask template $template_path\n")}
 
   my $nii_less_path = remove_dot_suffix($template_path);
-  my $mask_path     = "${nii_less_path}_mask\.nii";
+  my $mask_path     = "${nii_less_path}_mask\.nii.gz";
   my $num_morphs=5;
   my $morph_radius=2;
   
@@ -184,6 +187,8 @@ sub port_atlas_mask {
 	
     #my $domain_path = $atlas_images_dir . "/${atlas_id}_maskMD.nii";
     my $domain_path = $atlas_images_dir . "/${atlas_id}_mask.nii";
+    if ( ! -f $domain_path ) {
+	$domain_path = $atlas_images_dir . "/${atlas_id}_mask.nii.gz"; }
 #    my $warp_domain_path=$domain_path;
     my $interp= '--use-NN';
 
@@ -207,7 +212,7 @@ sub port_atlas_mask {
     my ($domain_name,$domain_folder,$domain_suffix) = fileparts($domain_path);
     my ($to_deform_name,$to_deform_folder,$to_deform_suffix) = fileparts($to_deform_path);
 
-    my $result_path="${domain_folder}/${to_deform_name}_2_${domain_name}.nii";	
+    my $result_path="${domain_folder}/${to_deform_name}_2_${domain_name}.nii.gz";	
     my $do_inverse_bool=1;# we want to start exposing this option.
     apply_affine_transform ($ggo, $to_deform_path, $result_path, $do_inverse_bool, $transform_path, $domain_path, $ants_app_dir, $interp); 
     return ($result_path);

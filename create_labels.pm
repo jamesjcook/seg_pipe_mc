@@ -227,6 +227,9 @@ sub create_multi_channel_diff_syn_transform {
     ###my $skull_mask   = $Hf->get_value('skull_norm_mask_path');  #### but we don't want to use this current mask for -x
   
     $ref_skull_mask   = "$canon_image_dir/${atlas_id}_mask.nii"; # a canonical reference mask
+    if ( ! -e $ref_skull_mask ) {
+	$ref_skull_mask   = "$canon_image_dir/${atlas_id}_mask.nii.gz"; # a canonical reference mask
+    }
 
     if (! -e $ref_skull_mask) {
 	error_out ("$PM create_diff_syn_transfrom: Reference skull mask $ref_skull_mask does not exist for -x option") ;
@@ -262,8 +265,10 @@ for(my $chindex=0;$chindex<$nchannels;$chindex++) {
 	      {
 		
 		$metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option}]"; 
-
                 $ref_skull_mask   = "$canon_image_dir/${atlas_id}_mask.nii"; # a canonical reference mask
+                if ( ! -e $ref_skull_mask ) {
+		    $ref_skull_mask= "$canon_image_dir/${atlas_id}_mask.nii.gz"; # a canonical reference mask
+		}
 		#$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x2 -t SyN[$syn_setting,1,0.5] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1"; 
 		#$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,1] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1"; 
 	        #$my_options = "-c [ $diffsyn_iter,1e-8,20] -s 4x2x1vox -f 8x4x4 -t SyN[$syn_setting,3,0] -x [ $ref_skull_mask, $norm_mask_path] -r $affine_xform -a 0 -u 1 -z 1"; 
@@ -361,7 +366,7 @@ sub warp_label_image {
 	error_out("$PM warp_atlas_image: did not find ${atlas_id} labels: $to_deform");
     }
     my $result_path_base = "$result_dir/${channel1}_labels_warp_${channel1_runno}";
-    my $result_path      = "$result_path_base\.nii";
+    my $result_path      = "$result_path_base\.nii.gz";
     #print ("result path $result_path_base, $channel1_runno, $result_dir --------\n");
 
     #my $warp_domain_path = $to_deform;
@@ -452,7 +457,7 @@ sub warp_canonical_image {
 
     my $result_dir       = $Hf->get_value('dir-work');
     my $result_path_base = "$result_dir/${channel1}-${atlas_id}canon_warp2_${channel1}-${channel1_runno}\_reg2_${atlas_id}";
-    my $result_path      = "$result_path_base\.nii";
+    my $result_path      = "$result_path_base\.nii.gz";
     
     #print ("result path $result_path --------\n");
     #changed feb 26 because the warpsare saved as gz
