@@ -94,21 +94,19 @@ sub create_multi_channel_affine_transform {
     my $channel1_runno   = $Hf->get_value("${channel1}-runno");
     my $used_reg_channels='';
     #nchannels is a global, should conert to hf->get_value('registration_channels');
-    # 
+    # $nchannels=$Hf->get_value('registration_channels'); 
     for(my $chindex=0;$chindex<$nchannels;$chindex++) {
-      #    foreach (@channel_array) {
-      $used_reg_channels=$used_reg_channels.'_'.@channel_array[$chindex];
+	#    foreach (@channel_array) {
+	$used_reg_channels=$used_reg_channels.'_'.@channel_array[$chindex];
     }
     my $result_transform_path_base = "$work_dir/${channel1_runno}${used_reg_channels}_label_transform_";
-                           # $result_transform_path_base = "$work_dir/${channel1}_label_DIFF_SYN_transform_";# alex 12 october 12
+    # $result_transform_path_base = "$work_dir/${channel1}_label_DIFF_SYN_transform_";# alex 12 october 12
     my $transform_direction=$Hf->get_value('transform_direction');
-
+    
 # build metrics, only using first two channels for now, that is set in the main_seg_pipe_mc script with nchannels variable, 
 # if you only specify one channel it will only use one.
-
-
+    
     my $metrics='';
-
     for(my $chindex=0;$chindex<$nchannels;$chindex++) {
 	my $ch_id=$channel_array[$chindex];
 	print("\tadding metric for ch_id:$ch_id\n");
@@ -151,18 +149,15 @@ sub create_multi_channel_affine_transform {
 	}}
 #old ants
     my $other_options = "-i 0 --number-of-affine-iterations $affine_iter --MI-option 32x32000 --use-Histogram-Matching --affine-gradient-descent-option 0.05x0.5x0.0001x0.0001"; # can use 0.2x0.5x0.0001x0.0001
-
-#old ants
-my $cmd = "$ants_app_dir/ants 3 $metrics -o $result_transform_path_base $other_options";
-
+    my $cmd = "$ants_app_dir/ants 3 $metrics -o $result_transform_path_base $other_options";
 #new ants
-  $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -t translation[0.25] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 $metrics -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 $metrics -t affine[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 -u 1 -z 1 -o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4"; 
+    # $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -t translation[0.25] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 $metrics -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 $metrics -t affine[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -l 1 -u 1 -z 1 -o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4"; 
 
 #let the learning rate be adjustable -l 0 or default
- $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -t translation[0.25] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 $metrics -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 $metrics -t affine[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -u 1 -z 1 -o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4"; #this one work pretty well but takes a long time
+    # $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -t translation[0.25] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 $metrics -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 $metrics -t affine[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0.5vox -f 6x4x2x1 -u 1 -z 1 -o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4"; #this one work pretty well but takes a long time
 
 #trying more smoothing here to speed convergence risk to loose small but strong features
-$cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x1vox -f 6x4x2x1 $metrics -t affine[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0vox -f 6x4x1x1 -u 1 -z 1 -l 1 -o $result_transform_path_base --affine-gradient-descent-option 0.05x0.5x1.e-4x1.e-4"; 
+    $cmd = "$ants_app_dir/antsRegistration -d 3 $metrics -t rigid[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x1vox -f 6x4x2x1 $metrics -t affine[0.1] -c [$affine_iter,1.e-8,20] -s 4x2x1x0vox -f 6x4x1x1 -u 1 -z 1 -l 1 -o $result_transform_path_base"; 
 
 
 
