@@ -14,6 +14,13 @@ use vars qw($test_mode);
 sub create_transform {
 # ------------------
   my ($go, $xform_code, $A_path, $B_path, $result_transform_path_base, $ants_app_dir) = @_;
+  # check for a_path and b_path and add .gz 
+  if ( ! -f $A_path ) {
+      $A_path=$A_path.".gz";
+  }
+  if ( ! -f $B_path ) {
+      $B_path=$B_path.".gz";
+  }   
   my $affine_iter="3000x3000x0x0";
   if (defined $test_mode) {
       if ($test_mode==1) {
@@ -94,7 +101,10 @@ sub apply_affine_transform {
 # ------------------
   my ($go, $to_deform_path, $result_path, $do_inverse_bool, $transform_path, $warp_domain_path, $ants_app_dir, $interp) =@_; 
 
-
+  # check for files, and if not exist assume gzip
+  if ( ! -f $warp_domain_path ) {
+      $warp_domain_path=$warp_domain_path.".gz";
+  }
 #rigid reg to atlas calls apply_affine_transform like this:
 # apply_affine_transform($ggo, $to_deform_path, $result_path, $do_inverse_bool, $xform_path, $domain_path, $ants_app_dir);
 

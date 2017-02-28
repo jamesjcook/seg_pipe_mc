@@ -114,7 +114,9 @@ sub create_multi_channel_affine_transform {
 	if ( $channel_option eq 'NO_KEY' ) { error_out ("could not find metric affine-${metric}-${ch_id}-weighting "); }
 	my $channel_path      = $Hf->get_value("${ch_id}-reg2-${atlas_id}-path");
 	my $atlas_image_path  = "${atlas_images_dir}/${atlas_id}_${ch_id}.nii"; # $Hf->get_value();
-	if ( ! -e $channel_path ) { # crap out on missing file
+	if ( ! -f $channel_path ) {$channel_path=$channel_path.".gz";	}
+	if ( ! -f $atlas_image_path ) {$atlas_image_path=$atlas_image_path.".gz"; }
+	if ( ! file_exists($channel_path) ) { # crap out on missing file
 	    error_out ("$PM create_multi_channel_affine_transform: $channel_path does not exist<${ch_id}-reg2-${atlas_id}-path>"); 
 	} else {
             if ($transform_direction eq 'i')
@@ -271,7 +273,9 @@ sub create_multi_channel_diff_syn_transform {
 	if ( $channel_option eq 'NO_KEY' ) { error_out ("could not find metric diff-SyN-${metric}-${ch_id}-weighting "); }
 	my $channel_path      = $Hf->get_value("${ch_id}-reg2-${atlas_id}-path");
 	my $atlas_image_path  = "${atlas_images_dir}/${atlas_id}_${ch_id}.nii"; # $Hf->get_value();
-	if ( ! -e $channel_path ) { # crap out on missing file
+	if ( ! -f $channel_path ) {$channel_path=$channel_path.".gz";	}
+	if ( ! -f $atlas_image_path ) {$atlas_image_path=$atlas_image_path.".gz"; }
+	if ( ! file_exists($channel_path."(.gz)?") ) { # crap out on missing file
 	    error_out ("$PM create_multi_channel_affine_transform: $channel_path does not exist<${ch_id}-reg2-${atlas_id}-path>");
 	} else {
 	    my $metric_options = $Hf->get_value("metric_options");
@@ -436,13 +440,14 @@ sub warp_label_image {
 
     my $channel1_path      = $Hf->get_value("${channel1}-reg2-${atlas_id}-path");
     my $to_deform = $label_dir . "/${atlas_id}_labels.nii"; 
-
+    if ( ! -f $to_deform ) {$to_deform=$to_deform.".gz"; }
+    
     my $transform_direction = $Hf->get_value('transform_direction');
     my $affine_xform = $Hf->get_value('diff_affine');
     my $warp_xform = $Hf->get_value('diff_warp');
     my $inverse_warp_xform = $Hf->get_value('diff_inv_warp');
 
-    if (! -e $to_deform) {
+    if (! file_exists($to_deform)) {
 	error_out("$PM warp_atlas_image: did not find ${atlas_id} labels: $to_deform");
     }
     my $result_path_base = "$result_dir/${channel1}_labels_warp_${channel1_runno}";
@@ -458,7 +463,7 @@ sub warp_label_image {
     #-R $warp_domain_path --use-NN $warp_xform\.nii.gz $affine_xform\.txt";
     	my $cmd='';
 
- if ($transform_direction eq 'i')
+    if ($transform_direction eq 'i')
 	      {
 	    #$cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN  -i $affine_xform\.txt $inverse_warp_xform\.nii.gz"; 
           # $cmd = "$ants_app_dir/WarpImageMultiTransform 3 $to_deform $result_path -R $warp_domain_path --use-NN  -i $affine_xform $inverse_warp_xform\.nii.gz"; 
@@ -526,7 +531,9 @@ sub warp_canonical_image {
     my @channel_array = split(',',$Hf->get_value('runno_ch_commalist'));
     my $channel1 = ${channel_array[0]};
     my $to_deform = $label_dir . "/${atlas_id}_${channel1}.nii"; 
-    if (! -e $to_deform) {
+    if ( ! -f $to_deform ) {$to_deform=$to_deform.".gz";	}
+
+    if (! file_exists($to_deform)) {
 	error_out("$PM warp_canonical_image: did not find canonical ${channel1} image: $to_deform");
     }
     my $ants_app_dir = $Hf->get_value('engine-app-ants-dir');
