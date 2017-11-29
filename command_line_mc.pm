@@ -203,7 +203,7 @@ dual contrast, with exsiting nii data (using test data set up from the install)
                        -l \$WORKSTATION_DATA/atlas/phant_labels \\
                        -eb 01111111 TESTDATA TESTDATA2 11.test.01 11.test.01
 dual contrast, with existing data using non standard contrasts.
-\tseg_pipe_mc -a phant -i /\$WORKSTATION_DATA/atlas/phant_images \\
+\tseg_pipe_mc -a phant -i /\$WORKSTATION_DATA/atlas/phant_canonical_images \\
                        -l /\$WORKSTATION_DATA/atlas/phant_labels \\
                        -q T1,T2W \\
                        -eb 01111111 TESTDATA TESTDATA2 11.test.01 11.test.01
@@ -582,7 +582,7 @@ sub command_line_mc {
   }
   $arg_hash{sliceselect}=$sliceselect;
 
-  my $metric_options;
+  my $metric_options="UNDEFINED_VALUE";
   if (defined $options{w}) {  # -w
       $metric_options = $options{w};
       my @metric_inputs = split(',',$metric_options);
@@ -599,7 +599,7 @@ sub command_line_mc {
   }
   $arg_hash{metric_options}=$metric_options;
   
-  my $syn_options;
+  my $syn_options="UNDEFINED_VALUE";
   if (defined $options{y}){  # -y
       $syn_options = $options{y};
       my @syn_inputs = split(',',$syn_options);
@@ -634,12 +634,11 @@ sub command_line_mc {
       #$cmd_line = "-f $atropos " . $cmd_line;   
    }
    #$arg_hash{atropos}=$atropos;
-
+  $arg_hash{extra_runno_suffix} = "--NONE";
   $arg_hash{threshold_code}=2;
   if (defined $options{'-'}) { # extra options processing
-      my $extra_runno_suffix = "--NONE";  
       my @extended_opts=split(',',$options{'-'});
-
+      my $extra_runno_suffix;
       for my $opt (@extended_opts) {
 	  $options{'-'}=$opt;
 	  if ($options{'-'} =~ /^suffix=.*/) {  # --suffix

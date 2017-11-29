@@ -352,7 +352,8 @@ print STDOUT "   Command line -w is being implemented as custom weighting for th
     }        
 
     if ($transform_direction eq 'i') {
-	$metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option}]"; 
+	# this metrics line looks like a git-merge error.
+	#$metrics = $metrics . " -m ${metric}[${atlas_image_path},${channel_path},${channel_option}]"; 
 	$ref_skull_mask   = "$canon_image_dir/${atlas_id}_mask.nii"; # a canonical reference mask
 	if ( ! -e $ref_skull_mask ) {
 	    $ref_skull_mask= "$canon_image_dir/${atlas_id}_mask.nii.gz"; # a canonical reference mask

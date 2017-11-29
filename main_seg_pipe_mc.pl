@@ -105,7 +105,7 @@ my $coil_bias = $arghash{coil_bias};               # -c
 my $transform_direction = $arghash{transform_direction};
 my $pull_source_images = $arghash{data_pull};      # -e
 my $extra_runno_suffix = $arghash{extra_runno_suffix}; # --suffix=something 
-my $threshold_code     = $arghash{threshold_code}; # --threshold=number
+my $threshold_code = $arghash{threshold_code}; # --threshold=number
 my $atropos_pf = $arghash{atropos};                # -f /somefile/ or "DEFAULT" or zero--currently WRONG, need to fix
 my $atropos_channel = $arghash{atropos_channel};   # 
 my $do_bit_mask = $arghash{bit_mask};              # -b 111111111
