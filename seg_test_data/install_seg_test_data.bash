@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash 
 # remove old copies of testdata work and results
 #if  [ -d /`hostname -s`space/TESTDATALabels-results ] 
 # then
@@ -9,8 +9,10 @@
 #    rm -fr /`hostname -s`space/TESTDATALabels-work
 # fi
 # make test data input directories
-
-if [ "X_"$BIGGUS_DISKUS == "X_"e ];
+if [ ! -d phant_canonical_images ]; then
+    echo "Please run from install from its own directory";
+fi;
+if [ "X_"$BIGGUS_DISKUS == "X_" ];
 then 
     BIGGUS_DISKUS=/`hostname -s`space/TESTDATALabels-inputs/TESTDATA;
 fi
@@ -34,18 +36,26 @@ else
   cp ./test2.nii /$BIGGUS_DISKUS/TESTDATALabels-work/TESTDATA2.nii 
 fi
 # put test atlas's in place.
+echo "Data will go into \"atlas directories\"/phant_canonical_images and \"atlas directories\"/phant_labels";
 read -p 'Where will atlas directories go?' atdir;
-cd phant_canonical_images #cd $atdir/phant_canonical_images
+
+
+# set up faux images based of a faux t1
+pushd $PWD; cd phant_canonical_images
 ln -s phant_T1.nii phant_T2W.nii 
 ln -s phant_T1.nii phant_T2Star.nii 
 ln -s phant_T1.nii phant_adc.nii 
 ln -s phant_T1.nii phant_dwi.nii 
 ln -s phant_T1.nii phant_fa.nii 
 ln -s phant_T1.nii phant_e1.nii 
-cd ..
-cd phant_labels
+popd; 
+
+# set up faux labels based off a faux t1
+if [ ! -d phant_labels ]; then mkdir phant_labels; fi
+pushd $PWD; cd phant_labels
 ln -s ../phant_canonical_images/phant_T1.nii phant_labels.nii
-cd ..
+popd
+
 cp -RPpn phant_canonical_images $atdir/phant_canonical_images
 cp -RPpn phant_labels $atdir/phant_labels
 
@@ -55,16 +65,19 @@ echo "-i $atdir/phant_canonical_images\ "
 echo "-l $atdir/phant_labels"
 
 #rm test links from this tes folder 
-cd phant_canonical_images #cd $atdir/phant_canonical_images
+pushd $PWD; cd phant_canonical_images
 unlink phant_T2W.nii 
 unlink phant_T2Star.nii 
 unlink phant_adc.nii 
 unlink phant_dwi.nii 
 unlink phant_fa.nii 
 unlink phant_e1.nii 
-cd ..
-cd phant_labels
+popd;
+
+pushd $PWD; cd phant_labels
 unlink phant_labels.nii
-cd ..
+popd;
+
+rmdir phant_labels
 #re-gzip our test files
 find . -iname "*nii" -exec gzip {} \;
