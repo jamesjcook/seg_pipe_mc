@@ -1,4 +1,4 @@
-#!/usr/local/pipeline-link/perl
+#!/usr/bin/env perl
 # main_seg_pipe_mc.pl
 # created 2009/10/27 Sally Gewalt CIVM
 #
